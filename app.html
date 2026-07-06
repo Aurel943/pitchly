@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>pitchly — mon espace</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,400;0,600;1,500;1,600&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<nav>
+  <div class="wrap">
+    <div class="logo"><span class="dot"></span>pitchly</div>
+    <!-- affiché dynamiquement par app.js selon le profil enregistré -->
+    <div class="profile-pill" id="profilePill" onclick="openOnboarding()">
+      chargement du profil…
+    </div>
+  </div>
+</nav>
+
+<main>
+  <div class="wrap">
+
+    <!-- ============ GÉNÉRATEUR ============ -->
+    <div class="card">
+      <div class="card-label">
+        <span>générer un script</span>
+        <span class="quota" id="quotaDisplay">— générations restantes</span>
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label>canal</label>
+          <select id="canalSelect">
+            <option value="appel">appel téléphonique</option>
+            <option value="email">email</option>
+            <option value="linkedin">message LinkedIn</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>situation</label>
+          <select id="situationSelect">
+            <option value="premier_contact">premier contact</option>
+            <option value="relance">relance</option>
+            <option value="closing">closing</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>contexte (optionnel)</label>
+        <textarea id="contexteInput" placeholder="ex : prospect qui a téléchargé mon guide gratuit la semaine dernière"></textarea>
+      </div>
+
+      <div class="field">
+        <label>ton</label>
+        <div class="pills" id="tonePills">
+          <span class="pill active" data-tone="direct">direct</span>
+          <span class="pill" data-tone="chaleureux">chaleureux</span>
+          <span class="pill" data-tone="expert">expert</span>
+        </div>
+      </div>
+
+      <button class="btn-primary" id="generateBtn" onclick="handleGenerate()">
+        ✦ générer le script
+      </button>
+    </div>
+
+    <!-- ============ SORTIE ============ -->
+    <div class="output-card" id="outputCard">
+      <div class="output-head">
+        <span id="outputMeta">script généré</span>
+        <div class="output-actions">
+          <button class="icon-btn" id="copyBtn" onclick="handleCopy()" title="copier">⧉</button>
+          <button class="icon-btn" id="saveBtn" onclick="handleSave()" title="sauvegarder en favori">★</button>
+        </div>
+      </div>
+      <p class="output-text" id="outputText"></p>
+    </div>
+
+    <!-- ============ SCRIPTS SAUVEGARDÉS ============ -->
+    <div class="card">
+      <div class="card-label"><span>mes scripts sauvegardés</span></div>
+      <div class="filters" id="savedFilters">
+        <span class="filter active" data-filter="tous">tous</span>
+        <span class="filter" data-filter="appel">appel</span>
+        <span class="filter" data-filter="email">email</span>
+        <span class="filter" data-filter="linkedin">linkedin</span>
+      </div>
+      <div id="savedList">
+        <!-- rempli dynamiquement par app.js -->
+      </div>
+    </div>
+
+    <!-- ============ OBJECTIONS ============ -->
+    <div class="card">
+      <div class="card-label"><span>objections fréquentes</span></div>
+      <div id="objectionsList">
+        <!-- rempli dynamiquement par app.js -->
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<!-- ============ MODALE ONBOARDING ============ -->
+<div class="modal-overlay" id="onboardingModal">
+  <div class="modal">
+    <h2>parle-nous de ton activité</h2>
+    <p class="desc">on adapte chaque script généré à ton métier.</p>
+
+    <div class="field">
+      <label>secteur</label>
+      <select id="secteurInput">
+        <option value="coaching">coaching et bien-être</option>
+        <option value="artisanat">artisanat / BTP</option>
+        <option value="conseil">conseil et services intellectuels</option>
+        <option value="creatif">freelance créatif</option>
+        <option value="commerce">commerce et produit physique</option>
+      </select>
+    </div>
+
+    <div class="field-row">
+      <div class="field">
+        <label>type d'offre</label>
+        <select id="offreInput">
+          <option value="abonnement">abonnement</option>
+          <option value="ponctuelle">prestation ponctuelle</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>panier moyen</label>
+        <input type="text" id="panierInput" placeholder="ex : 89€/mois">
+      </div>
+    </div>
+
+    <button class="btn-primary" onclick="handleOnboardingSubmit()">continuer</button>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
