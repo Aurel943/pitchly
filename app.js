@@ -119,13 +119,17 @@ function openOnboarding() {
 }
 
 async function handleOnboardingSubmit() {
-  const profile = await saveProfile({
-    secteur: document.getElementById('secteurInput').value,
-    offre: document.getElementById('offreInput').value,
-    panier: document.getElementById('panierInput').value || 'non précisé',
-  });
-  showOnly('mainApp');
-  await startApp(profile);
+  try {
+    const profile = await saveProfile({
+      secteur: document.getElementById('secteurInput').value,
+      offre: document.getElementById('offreInput').value,
+      panier: document.getElementById('panierInput').value || 'non précisé',
+    });
+    showOnly('mainApp');
+    await startApp(profile);
+  } catch (err) {
+    alert('Erreur lors de la sauvegarde du profil : ' + err.message);
+  }
 }
 
 // Libellés lisibles pour l'affichage (les <select> stockent des codes courts)
