@@ -95,6 +95,13 @@
     <!-- ============ SCRIPTS SAUVEGARDÉS ============ -->
     <div class="card">
       <div class="card-label"><span>mes scripts sauvegardés</span></div>
+      <div class="saved-toolbar">
+        <input type="text" id="savedSearchInput" placeholder="rechercher dans mes scripts…">
+        <select id="savedSortSelect">
+          <option value="recent">plus récents</option>
+          <option value="oldest">plus anciens</option>
+        </select>
+      </div>
       <div class="filters" id="savedFilters">
         <span class="filter active" data-filter="tous">tous</span>
         <span class="filter" data-filter="appel">appel</span>
@@ -133,6 +140,23 @@
     </div>
     <button class="btn-primary" id="authEmailBtn" onclick="signInWithEmailLink()">recevoir un lien de connexion</button>
     <p class="auth-status" id="authStatus"></p>
+  </div>
+</div>
+
+<!-- ============ MODALE DÉTAIL SCRIPT ============ -->
+<div class="modal-overlay hidden" id="scriptModal">
+  <div class="modal modal-wide">
+    <div class="modal-head">
+      <input type="text" class="script-name-input" id="scriptModalName" placeholder="nom du script">
+      <button class="icon-btn" onclick="closeScriptModal()" title="fermer">✕</button>
+    </div>
+    <span class="tag" id="scriptModalMeta"></span>
+    <p class="script-modal-text" id="scriptModalText"></p>
+    <div class="modal-actions">
+      <button class="icon-btn" onclick="handleCopyScriptModal()" title="copier">⧉ copier</button>
+      <button class="icon-btn" onclick="handleRenameScriptSubmit()" title="enregistrer le nom">✓ enregistrer le nom</button>
+      <button class="icon-btn danger" onclick="handleDeleteScript(currentScriptId)" title="supprimer">🗑 supprimer</button>
+    </div>
   </div>
 </div>
 

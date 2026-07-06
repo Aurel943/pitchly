@@ -252,6 +252,15 @@ document.getElementById('tonePills').addEventListener('click', (e) => {
    ================================================================ */
 
 let currentFilter = 'tous';
+let currentSearch = '';
+let currentSort = 'recent';
+let lastSavedScripts = [];
+let currentScriptId = null;
+
+function defaultScriptName(texte) {
+  const firstLine = texte.split('\n').find(l => l.trim().length > 0) || '';
+  return firstLine.replace(/^#+\s*/, '').slice(0, 60) || 'script sans nom';
+}
 
 async function getSavedScripts() {
   const { data } = await supabaseClient
@@ -270,7 +279,7 @@ async function handleSave() {
 
   await supabaseClient
     .from('saved_scripts')
-    .insert({ user_id: currentUser.id, canal, situation, texte });
+    .insert({ user_id: currentUser.id, canal, situation, texte, nom: defaultScriptName(texte) });
 
   document.getElementById('saveBtn').classList.add('active');
   await renderSavedList();
@@ -278,19 +287,33 @@ async function handleSave() {
 
 async function renderSavedList() {
   const container = document.getElementById('savedList');
-  const all = await getSavedScripts();
-  const filtered = currentFilter === 'tous' ? all : all.filter(s => s.canal === currentFilter);
+  lastSavedScripts = await getSavedScripts();
 
-  if (filtered.length === 0) {
+  let list = currentFilter === 'tous' ? lastSavedScripts : lastSavedScripts.filter(s => s.canal === currentFilter);
+
+  if (currentSearch) {
+    const q = currentSearch.toLowerCase();
+    list = list.filter(s => (s.nom || '').toLowerCase().includes(q) || s.texte.toLowerCase().includes(q));
+  }
+
+  if (currentSort === 'oldest') {
+    list = [...list].reverse();
+  }
+
+  if (list.length === 0) {
     container.innerHTML = '<p class="empty-state">aucun script sauvegardé pour l\'instant.</p>';
     return;
   }
 
-  container.innerHTML = filtered.map(s => `
-    <div class="saved-item">
+  container.innerHTML = list.map(s => `
+    <div class="saved-item" onclick="openScriptDetail('${s.id}')">
       <div class="saved-item-head">
-        <span class="tag">${s.situation.replace('_', ' ')} · ${s.canal}</span>
+        <span class="name">${s.nom || `${s.situation.replace('_', ' ')} · ${s.canal}`}</span>
+        <div class="saved-item-actions">
+          <button class="icon-btn" onclick="event.stopPropagation(); handleDeleteScript('${s.id}')" title="supprimer">🗑</button>
+        </div>
       </div>
+      <span class="tag">${s.situation.replace('_', ' ')} · ${s.canal}</span>
       <p>${s.texte.slice(0, 90)}${s.texte.length > 90 ? '…' : ''}</p>
     </div>
   `).join('');
@@ -303,6 +326,66 @@ document.getElementById('savedFilters').addEventListener('click', (e) => {
   currentFilter = e.target.dataset.filter;
   renderSavedList();
 });
+
+document.getElementById('savedSearchInput').addEventListener('input', (e) => {
+  currentSearch = e.target.value.trim();
+  renderSavedList();
+});
+
+document.getElementById('savedSortSelect').addEventListener('change', (e) => {
+  currentSort = e.target.value;
+  renderSavedList();
+});
+
+
+/* ================================================================
+   MODALE DÉTAIL D'UN SCRIPT SAUVEGARDÉ
+   ================================================================ */
+
+function openScriptDetail(id) {
+  const script = lastSavedScripts.find(s => s.id === id);
+  if (!script) return;
+
+  currentScriptId = id;
+  document.getElementById('scriptModalName').value = script.nom || '';
+  document.getElementById('scriptModalMeta').textContent = `${script.situation.replace('_', ' ')} · ${script.canal}`;
+  document.getElementById('scriptModalText').textContent = script.texte;
+  document.getElementById('scriptModal').classList.remove('hidden');
+}
+
+function closeScriptModal() {
+  document.getElementById('scriptModal').classList.add('hidden');
+  currentScriptId = null;
+}
+
+async function handleRenameScriptSubmit() {
+  if (!currentScriptId) return;
+  const nom = document.getElementById('scriptModalName').value.trim();
+
+  await supabaseClient
+    .from('saved_scripts')
+    .update({ nom })
+    .eq('id', currentScriptId);
+
+  await renderSavedList();
+}
+
+async function handleDeleteScript(id) {
+  if (!confirm('Supprimer ce script sauvegardé ?')) return;
+
+  await supabaseClient
+    .from('saved_scripts')
+    .delete()
+    .eq('id', id);
+
+  if (currentScriptId === id) closeScriptModal();
+  await renderSavedList();
+}
+
+function handleCopyScriptModal() {
+  const texte = document.getElementById('scriptModalText').textContent;
+  navigator.clipboard.writeText(texte);
+}
 
 
 /* ================================================================

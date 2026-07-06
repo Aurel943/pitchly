@@ -30,6 +30,7 @@ create policy "profiles: update own" on public.profiles
 create table if not exists public.saved_scripts (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
+  nom text,
   canal text not null,
   situation text not null,
   texte text not null,
@@ -43,6 +44,9 @@ create policy "saved_scripts: select own" on public.saved_scripts
 
 create policy "saved_scripts: insert own" on public.saved_scripts
   for insert with check (auth.uid() = user_id);
+
+create policy "saved_scripts: update own" on public.saved_scripts
+  for update using (auth.uid() = user_id);
 
 create policy "saved_scripts: delete own" on public.saved_scripts
   for delete using (auth.uid() = user_id);
