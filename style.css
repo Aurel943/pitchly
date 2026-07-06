@@ -51,6 +51,8 @@ nav .wrap{display:flex;align-items:center;justify-content:space-between;height:6
    LAYOUT GÉNÉRAL DE L'APP
    ============================================ */
 main{padding:40px 0 80px;}
+.back-link{display:inline-block;font-size:13px;color:var(--text-muted);margin-bottom:20px;}
+.back-link:hover{color:var(--ink);}
 .card{background:var(--paper);border:1px solid rgba(22,41,44,0.08);border-radius:14px;padding:24px;margin-bottom:20px;}
 .card-label{font-size:13px;font-weight:600;color:var(--text-muted);margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;}
 .quota{font-size:12px;font-weight:600;color:var(--rust);background:rgba(181,87,62,0.1);padding:4px 10px;border-radius:20px;}

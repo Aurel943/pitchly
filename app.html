@@ -10,14 +10,8 @@
 </head>
 <body>
 
-<!-- Config Supabase — à remplacer par les valeurs de ton projet
-     (Dashboard → Settings → API). L'URL et la clé "anon public" sont
-     publiques par design : la sécurité vient des policies RLS. -->
-<script>
-  const SUPABASE_URL = 'https://evygjcmaxmnfusrvbjkk.supabase.co';
-  const SUPABASE_ANON_KEY = 'sb_publishable_u7T90UhMnJsLSTK9yErA8w_VpT7NfGk';
-</script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="auth.js"></script>
 
 <nav>
   <div class="wrap">
@@ -27,6 +21,7 @@
       <div class="profile-pill" id="profilePill" onclick="openOnboarding()">
         chargement du profil…
       </div>
+      <a class="icon-btn" href="compte.html" title="mon compte">⚙</a>
       <button class="icon-btn hidden" id="logoutBtn" onclick="handleLogout()" title="déconnexion">⏻</button>
     </div>
   </div>
@@ -138,8 +133,34 @@
       <label>email</label>
       <input type="email" id="authEmailInput" placeholder="toi@exemple.com">
     </div>
-    <button class="btn-primary" id="authEmailBtn" onclick="signInWithEmailLink()">recevoir un lien de connexion</button>
+    <button class="btn-primary" id="authEmailBtn" onclick="handleEmailLinkClick()">recevoir un lien de connexion</button>
     <p class="auth-status" id="authStatus"></p>
+  </div>
+</div>
+
+<!-- ============ MODALE INFOS DE COMPTE ============ -->
+<div class="modal-overlay hidden" id="accountInfoModal">
+  <div class="modal">
+    <h2>complète ton compte</h2>
+    <p class="desc">quelques infos avant de démarrer.</p>
+
+    <div class="field">
+      <label>nom</label>
+      <input type="text" id="accountNomInput" placeholder="ton nom">
+    </div>
+
+    <div class="field-row">
+      <div class="field">
+        <label>date de naissance</label>
+        <input type="date" id="accountDateNaissanceInput">
+      </div>
+      <div class="field">
+        <label>téléphone</label>
+        <input type="tel" id="accountTelephoneInput" placeholder="06 12 34 56 78">
+      </div>
+    </div>
+
+    <button class="btn-primary" onclick="handleAccountInfoSubmit()">continuer</button>
   </div>
 </div>
 

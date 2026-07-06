@@ -4,9 +4,14 @@
 -- (Dashboard → SQL Editor → New query → coller → Run).
 -- ================================================================
 
--- PROFIL MÉTIER — une ligne par utilisateur, liée à auth.users.
+-- PROFIL — une ligne par utilisateur, liée à auth.users.
+-- Regroupe les infos de compte (nom/date de naissance/téléphone) et le
+-- profil métier (secteur/offre/panier).
 create table if not exists public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
+  nom text,
+  date_naissance date,
+  telephone text,
   secteur text,
   offre text,
   panier text,

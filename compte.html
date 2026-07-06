@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>pitchly — mon compte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,400;0,600;1,500;1,600&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="auth.js"></script>
+
+<nav>
+  <div class="wrap">
+    <div class="logo"><span class="dot"></span>pitchly</div>
+    <div class="nav-right">
+      <button class="icon-btn" id="logoutBtn" onclick="handleLogout()" title="déconnexion">⏻</button>
+    </div>
+  </div>
+</nav>
+
+<main id="mainAccount" class="hidden">
+  <div class="wrap">
+    <a class="back-link" href="app.html">← retour au tableau de bord</a>
+
+    <!-- ============ INFOS DE COMPTE ============ -->
+    <div class="card">
+      <div class="card-label"><span>informations du compte</span></div>
+
+      <div class="field">
+        <label>email</label>
+        <input type="email" id="accountEmailDisplay" disabled>
+      </div>
+
+      <div class="field">
+        <label>nom</label>
+        <input type="text" id="accountNomInput" placeholder="ton nom">
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label>date de naissance</label>
+          <input type="date" id="accountDateNaissanceInput">
+        </div>
+        <div class="field">
+          <label>téléphone</label>
+          <input type="tel" id="accountTelephoneInput" placeholder="06 12 34 56 78">
+        </div>
+      </div>
+
+      <button class="btn-primary" onclick="handleSaveAccountInfo()">enregistrer</button>
+    </div>
+
+    <!-- ============ PROFIL MÉTIER ============ -->
+    <div class="card">
+      <div class="card-label"><span>profil métier</span></div>
+
+      <div class="field">
+        <label>secteur</label>
+        <select id="secteurInput">
+          <option value="coaching">coaching et bien-être</option>
+          <option value="artisanat">artisanat / BTP</option>
+          <option value="conseil">conseil et services intellectuels</option>
+          <option value="creatif">freelance créatif</option>
+          <option value="commerce">commerce et produit physique</option>
+        </select>
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label>type d'offre</label>
+          <select id="offreInput">
+            <option value="abonnement">abonnement</option>
+            <option value="ponctuelle">prestation ponctuelle</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>panier moyen</label>
+          <input type="text" id="panierInput" placeholder="ex : 89€/mois">
+        </div>
+      </div>
+
+      <button class="btn-primary" onclick="handleSaveBusinessProfile()">enregistrer</button>
+    </div>
+  </div>
+</main>
+
+<script src="compte.js"></script>
+</body>
+</html>

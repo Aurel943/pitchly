@@ -1,76 +1,52 @@
 /* ================================================================
    PITCHLY — app.js
    Vue d'ensemble du fichier (5 blocs) :
-   0. AUTH        → connexion Google / email, session, déconnexion
-   1. PROFIL      → lire/écrire le profil métier (Supabase, table "profiles")
+   1. PROFIL      → gate auth/compte/métier + lire/écrire le profil
+                    (Supabase, table "profiles" — voir aussi auth.js)
    2. GÉNÉRATEUR  → construire un script à partir de templates
                     (⚠️ à remplacer plus tard par un vrai appel à l'API Claude)
    3. SAUVEGARDE  → gérer la liste des scripts favoris (table "saved_scripts")
    4. OBJECTIONS  → afficher/masquer les réponses au clic
+
+   L'auth (connexion Google/email, session, déconnexion) et les fonctions
+   getProfile()/saveProfile() vivent dans auth.js, chargé avant ce fichier.
    ================================================================ */
 
 
 /* ================================================================
-   BLOC 0 — AUTH
-   Connexion via Supabase Auth (Google OAuth + lien magique par email).
-   currentUser est rempli une fois la session résolue.
+   BLOC 1 — GATE AUTH / COMPTE / PROFIL MÉTIER
+   Trois étapes avant d'afficher l'app : session Supabase, infos de
+   compte (nom/date de naissance/téléphone), profil métier
+   (secteur/offre/panier). Chaque étape a sa propre modale.
    ================================================================ */
 
-const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-let currentUser = null;
+const QUOTA_GRATUIT = 5;
 
 function showOnly(overlayId) {
   document.getElementById('authModal').classList.toggle('hidden', overlayId !== 'authModal');
+  document.getElementById('accountInfoModal').classList.toggle('hidden', overlayId !== 'accountInfoModal');
   document.getElementById('onboardingModal').classList.toggle('hidden', overlayId !== 'onboardingModal');
   document.getElementById('mainApp').classList.toggle('hidden', overlayId !== 'mainApp');
 }
 
-async function signInWithGoogle() {
-  await supabaseClient.auth.signInWithOAuth({
-    provider: 'google',
-    options: { redirectTo: window.location.href },
-  });
-}
-
-async function signInWithEmailLink() {
-  const email = document.getElementById('authEmailInput').value.trim();
-  const status = document.getElementById('authStatus');
-  if (!email) return;
-
-  const btn = document.getElementById('authEmailBtn');
-  btn.disabled = true;
-
-  const { error } = await supabaseClient.auth.signInWithOtp({
-    email,
-    options: { emailRedirectTo: window.location.href },
-  });
-
-  btn.disabled = false;
-  status.textContent = error
-    ? 'erreur : ' + error.message
-    : `lien envoyé à ${email}, vérifie ta boîte mail.`;
-}
-
-async function handleLogout() {
-  await supabaseClient.auth.signOut();
-  currentUser = null;
-  showOnly('authModal');
-}
-
 async function initAuthGate() {
-  const { data: { session } } = await supabaseClient.auth.getSession();
+  const session = await getSession();
 
   if (!session) {
     showOnly('authModal');
     return;
   }
 
-  currentUser = session.user;
   document.getElementById('logoutBtn').classList.remove('hidden');
 
   const profile = await getProfile();
-  if (!profile) {
+
+  if (!profile || !profile.nom) {
+    showOnly('accountInfoModal');
+    return;
+  }
+
+  if (!profile.secteur) {
     showOnly('onboardingModal');
     return;
   }
@@ -85,33 +61,38 @@ supabaseClient.auth.onAuthStateChange((_event, session) => {
   }
 });
 
+async function handleEmailLinkClick() {
+  const email = document.getElementById('authEmailInput').value.trim();
+  const status = document.getElementById('authStatus');
+  if (!email) return;
 
-/* ================================================================
-   BLOC 1 — PROFIL UTILISATEUR
-   Stocké dans la table Supabase "profiles", une ligne par utilisateur
-   (clé primaire = id du compte). Tant qu'elle n'existe pas, on affiche
-   la modale d'onboarding.
-   ================================================================ */
+  const btn = document.getElementById('authEmailBtn');
+  btn.disabled = true;
 
-const QUOTA_GRATUIT = 5;
+  const { error } = await signInWithEmailLink(email);
 
-async function getProfile() {
-  const { data } = await supabaseClient
-    .from('profiles')
-    .select('*')
-    .eq('id', currentUser.id)
-    .maybeSingle();
-  return data;
+  btn.disabled = false;
+  status.textContent = error
+    ? 'erreur : ' + error.message
+    : `lien envoyé à ${email}, vérifie ta boîte mail.`;
 }
 
-async function saveProfile(fields) {
-  const { data, error } = await supabaseClient
-    .from('profiles')
-    .upsert({ id: currentUser.id, ...fields })
-    .select()
-    .single();
-  if (error) throw error;
-  return data;
+async function handleAccountInfoSubmit() {
+  try {
+    const profile = await saveProfile({
+      nom: document.getElementById('accountNomInput').value.trim(),
+      date_naissance: document.getElementById('accountDateNaissanceInput').value || null,
+      telephone: document.getElementById('accountTelephoneInput').value.trim(),
+    });
+    if (!profile.secteur) {
+      showOnly('onboardingModal');
+      return;
+    }
+    showOnly('mainApp');
+    await startApp(profile);
+  } catch (err) {
+    alert('Erreur lors de la sauvegarde du compte : ' + err.message);
+  }
 }
 
 function openOnboarding() {
