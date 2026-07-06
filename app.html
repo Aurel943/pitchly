@@ -10,17 +10,29 @@
 </head>
 <body>
 
+<!-- Config Supabase — à remplacer par les valeurs de ton projet
+     (Dashboard → Settings → API). L'URL et la clé "anon public" sont
+     publiques par design : la sécurité vient des policies RLS. -->
+<script>
+  const SUPABASE_URL = 'https://TON-PROJET.supabase.co';
+  const SUPABASE_ANON_KEY = 'TA-CLE-ANON-PUBLIC';
+</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 <nav>
   <div class="wrap">
     <div class="logo"><span class="dot"></span>pitchly</div>
-    <!-- affiché dynamiquement par app.js selon le profil enregistré -->
-    <div class="profile-pill" id="profilePill" onclick="openOnboarding()">
-      chargement du profil…
+    <div class="nav-right">
+      <!-- affiché dynamiquement par app.js selon le profil enregistré -->
+      <div class="profile-pill" id="profilePill" onclick="openOnboarding()">
+        chargement du profil…
+      </div>
+      <button class="icon-btn hidden" id="logoutBtn" onclick="handleLogout()" title="déconnexion">⏻</button>
     </div>
   </div>
 </nav>
 
-<main>
+<main id="mainApp" class="hidden">
   <div class="wrap">
 
     <!-- ============ GÉNÉRATEUR ============ -->
@@ -105,8 +117,27 @@
   </div>
 </main>
 
+<!-- ============ MODALE CONNEXION ============ -->
+<div class="modal-overlay hidden" id="authModal">
+  <div class="modal">
+    <h2>connecte-toi</h2>
+    <p class="desc">ton profil, tes scripts et ton quota te suivent partout.</p>
+
+    <button class="btn-primary" onclick="signInWithGoogle()">continuer avec Google</button>
+
+    <div class="auth-divider"><span>ou</span></div>
+
+    <div class="field">
+      <label>email</label>
+      <input type="email" id="authEmailInput" placeholder="toi@exemple.com">
+    </div>
+    <button class="btn-primary" id="authEmailBtn" onclick="signInWithEmailLink()">recevoir un lien de connexion</button>
+    <p class="auth-status" id="authStatus"></p>
+  </div>
+</div>
+
 <!-- ============ MODALE ONBOARDING ============ -->
-<div class="modal-overlay" id="onboardingModal">
+<div class="modal-overlay hidden" id="onboardingModal">
   <div class="modal">
     <h2>parle-nous de ton activité</h2>
     <p class="desc">on adapte chaque script généré à ton métier.</p>

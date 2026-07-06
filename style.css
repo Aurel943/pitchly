@@ -36,6 +36,16 @@ nav .wrap{display:flex;align-items:center;justify-content:space-between;height:6
 .logo .dot{width:8px;height:8px;border-radius:50%;background:var(--rust);}
 .profile-pill{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-muted);background:var(--paper-dim);padding:7px 14px;border-radius:20px;cursor:pointer;border:1px solid rgba(22,41,44,0.08);}
 .profile-pill:hover{border-color:var(--gold);}
+.nav-right{display:flex;align-items:center;gap:10px;}
+
+.hidden{display:none!important;}
+
+/* ============================================
+   AUTH
+   ============================================ */
+.auth-divider{display:flex;align-items:center;gap:10px;margin:16px 0;font-size:12px;color:var(--text-muted);}
+.auth-divider::before, .auth-divider::after{content:'';flex:1;height:1px;background:rgba(22,41,44,0.12);}
+.auth-status{font-size:12.5px;color:var(--moss);margin-top:10px;min-height:16px;}
 
 /* ============================================
    LAYOUT GÉNÉRAL DE L'APP

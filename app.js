@@ -1,48 +1,131 @@
 /* ================================================================
    PITCHLY — app.js
-   Vue d'ensemble du fichier (4 blocs) :
-   1. PROFIL      → lire/écrire le profil métier (localStorage)
+   Vue d'ensemble du fichier (5 blocs) :
+   0. AUTH        → connexion Google / email, session, déconnexion
+   1. PROFIL      → lire/écrire le profil métier (Supabase, table "profiles")
    2. GÉNÉRATEUR  → construire un script à partir de templates
                     (⚠️ à remplacer plus tard par un vrai appel à l'API Claude)
-   3. SAUVEGARDE  → gérer la liste des scripts favoris
+   3. SAUVEGARDE  → gérer la liste des scripts favoris (table "saved_scripts")
    4. OBJECTIONS  → afficher/masquer les réponses au clic
    ================================================================ */
 
 
 /* ================================================================
+   BLOC 0 — AUTH
+   Connexion via Supabase Auth (Google OAuth + lien magique par email).
+   currentUser est rempli une fois la session résolue.
+   ================================================================ */
+
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+let currentUser = null;
+
+function showOnly(overlayId) {
+  document.getElementById('authModal').classList.toggle('hidden', overlayId !== 'authModal');
+  document.getElementById('onboardingModal').classList.toggle('hidden', overlayId !== 'onboardingModal');
+  document.getElementById('mainApp').classList.toggle('hidden', overlayId !== 'mainApp');
+}
+
+async function signInWithGoogle() {
+  await supabaseClient.auth.signInWithOAuth({
+    provider: 'google',
+    options: { redirectTo: window.location.href },
+  });
+}
+
+async function signInWithEmailLink() {
+  const email = document.getElementById('authEmailInput').value.trim();
+  const status = document.getElementById('authStatus');
+  if (!email) return;
+
+  const btn = document.getElementById('authEmailBtn');
+  btn.disabled = true;
+
+  const { error } = await supabaseClient.auth.signInWithOtp({
+    email,
+    options: { emailRedirectTo: window.location.href },
+  });
+
+  btn.disabled = false;
+  status.textContent = error
+    ? 'erreur : ' + error.message
+    : `lien envoyé à ${email}, vérifie ta boîte mail.`;
+}
+
+async function handleLogout() {
+  await supabaseClient.auth.signOut();
+  currentUser = null;
+  showOnly('authModal');
+}
+
+async function initAuthGate() {
+  const { data: { session } } = await supabaseClient.auth.getSession();
+
+  if (!session) {
+    showOnly('authModal');
+    return;
+  }
+
+  currentUser = session.user;
+  document.getElementById('logoutBtn').classList.remove('hidden');
+
+  const profile = await getProfile();
+  if (!profile) {
+    showOnly('onboardingModal');
+    return;
+  }
+
+  showOnly('mainApp');
+  await startApp(profile);
+}
+
+supabaseClient.auth.onAuthStateChange((_event, session) => {
+  if (session && !currentUser) {
+    initAuthGate();
+  }
+});
+
+
+/* ================================================================
    BLOC 1 — PROFIL UTILISATEUR
-   Stocké en localStorage sous la clé "pitchly_profile".
-   Tant qu'il n'existe pas, on affiche la modale d'onboarding.
+   Stocké dans la table Supabase "profiles", une ligne par utilisateur
+   (clé primaire = id du compte). Tant qu'elle n'existe pas, on affiche
+   la modale d'onboarding.
    ================================================================ */
 
 const QUOTA_GRATUIT = 5;
 
-function getProfile() {
-  const raw = localStorage.getItem('pitchly_profile');
-  return raw ? JSON.parse(raw) : null;
+async function getProfile() {
+  const { data } = await supabaseClient
+    .from('profiles')
+    .select('*')
+    .eq('id', currentUser.id)
+    .maybeSingle();
+  return data;
 }
 
-function saveProfile(profile) {
-  localStorage.setItem('pitchly_profile', JSON.stringify(profile));
+async function saveProfile(fields) {
+  const { data, error } = await supabaseClient
+    .from('profiles')
+    .upsert({ id: currentUser.id, ...fields })
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
 }
 
 function openOnboarding() {
-  document.getElementById('onboardingModal').classList.remove('hidden');
+  showOnly('onboardingModal');
 }
 
-function closeOnboarding() {
-  document.getElementById('onboardingModal').classList.add('hidden');
-}
-
-function handleOnboardingSubmit() {
-  const profile = {
+async function handleOnboardingSubmit() {
+  const profile = await saveProfile({
     secteur: document.getElementById('secteurInput').value,
     offre: document.getElementById('offreInput').value,
     panier: document.getElementById('panierInput').value || 'non précisé',
-  };
-  saveProfile(profile);
-  closeOnboarding();
-  renderProfilePill();
+  });
+  showOnly('mainApp');
+  await startApp(profile);
 }
 
 // Libellés lisibles pour l'affichage (les <select> stockent des codes courts)
@@ -54,10 +137,9 @@ const LABELS_SECTEUR = {
   commerce: 'commerce et produit physique',
 };
 
-function renderProfilePill() {
-  const profile = getProfile();
+function renderProfilePill(profile) {
   const pill = document.getElementById('profilePill');
-  pill.textContent = profile ? LABELS_SECTEUR[profile.secteur] : 'configurer mon profil';
+  pill.textContent = LABELS_SECTEUR[profile.secteur];
 }
 
 
@@ -66,19 +148,39 @@ function renderProfilePill() {
    handleGenerate() envoie le profil + les choix du formulaire à
    notre fonction backend (/api/generate), qui elle-même appelle
    l'API Claude et renvoie le texte généré.
+
+   Le quota mensuel est stocké dans la ligne "profiles" de l'utilisateur
+   (colonnes quota_used / quota_month) et remis à zéro dès qu'on change
+   de mois.
    ================================================================ */
 
 let currentTone = 'direct';
+let currentProfile = null;
+
+function currentMonthKey() {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function getQuotaUsed() {
+  return currentProfile.quota_month === currentMonthKey() ? currentProfile.quota_used : 0;
+}
+
+async function incrementQuotaUsed() {
+  const usedThisMonth = getQuotaUsed();
+  currentProfile = await saveProfile({
+    quota_used: usedThisMonth + 1,
+    quota_month: currentMonthKey(),
+  });
+}
+
+function updateQuotaDisplay() {
+  const restant = Math.max(0, QUOTA_GRATUIT - getQuotaUsed());
+  document.getElementById('quotaDisplay').textContent = `${restant} générations restantes`;
+}
 
 async function handleGenerate() {
-  const profile = getProfile();
-  if (!profile) {
-    openOnboarding();
-    return;
-  }
-
-  const usedThisMonth = getQuotaUsed();
-  if (usedThisMonth >= QUOTA_GRATUIT) {
+  if (getQuotaUsed() >= QUOTA_GRATUIT) {
     alert('Quota gratuit atteint pour ce mois-ci. (ici on brancherait la modale "passer pro")');
     return;
   }
@@ -97,9 +199,9 @@ async function handleGenerate() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        secteur: LABELS_SECTEUR[profile.secteur],
-        offre: profile.offre,
-        panier: profile.panier,
+        secteur: LABELS_SECTEUR[currentProfile.secteur],
+        offre: currentProfile.offre,
+        panier: currentProfile.panier,
         canal,
         situation,
         ton: currentTone,
@@ -120,7 +222,7 @@ async function handleGenerate() {
     document.getElementById('outputCard').classList.add('visible');
     document.getElementById('saveBtn').classList.remove('active'); // reset l'état favori
 
-    incrementQuotaUsed();
+    await incrementQuotaUsed();
     updateQuotaDisplay();
 
   } catch (err) {
@@ -141,58 +243,38 @@ document.getElementById('tonePills').addEventListener('click', (e) => {
 
 
 /* ================================================================
-   QUOTA — compteur simple stocké en localStorage.
-   (En vrai produit, ce compteur vivrait côté serveur, lié au compte.)
-   ================================================================ */
-
-function getQuotaUsed() {
-  return parseInt(localStorage.getItem('pitchly_quota_used') || '0', 10);
-}
-
-function incrementQuotaUsed() {
-  localStorage.setItem('pitchly_quota_used', getQuotaUsed() + 1);
-}
-
-function updateQuotaDisplay() {
-  const restant = Math.max(0, QUOTA_GRATUIT - getQuotaUsed());
-  document.getElementById('quotaDisplay').textContent = `${restant} générations restantes`;
-}
-
-
-/* ================================================================
    BLOC 3 — SCRIPTS SAUVEGARDÉS
-   Liste stockée en localStorage sous "pitchly_saved" (tableau JSON).
+   Table Supabase "saved_scripts", filtrée par utilisateur (RLS).
    ================================================================ */
 
 let currentFilter = 'tous';
 
-function getSavedScripts() {
-  const raw = localStorage.getItem('pitchly_saved');
-  return raw ? JSON.parse(raw) : [];
+async function getSavedScripts() {
+  const { data } = await supabaseClient
+    .from('saved_scripts')
+    .select('*')
+    .order('created_at', { ascending: false });
+  return data || [];
 }
 
-function setSavedScripts(list) {
-  localStorage.setItem('pitchly_saved', JSON.stringify(list));
-}
-
-function handleSave() {
+async function handleSave() {
   const texte = document.getElementById('outputText').textContent;
   if (!texte) return;
 
   const canal = document.getElementById('canalSelect').value;
   const situation = document.getElementById('situationSelect').value;
 
-  const saved = getSavedScripts();
-  saved.unshift({ id: Date.now(), canal, situation, texte });
-  setSavedScripts(saved);
+  await supabaseClient
+    .from('saved_scripts')
+    .insert({ user_id: currentUser.id, canal, situation, texte });
 
   document.getElementById('saveBtn').classList.add('active');
-  renderSavedList();
+  await renderSavedList();
 }
 
-function renderSavedList() {
+async function renderSavedList() {
   const container = document.getElementById('savedList');
-  const all = getSavedScripts();
+  const all = await getSavedScripts();
   const filtered = currentFilter === 'tous' ? all : all.filter(s => s.canal === currentFilter);
 
   if (filtered.length === 0) {
@@ -258,16 +340,22 @@ function renderObjections() {
 
 
 /* ================================================================
+   DÉMARRAGE DE L'APP UNE FOIS AUTH + PROFIL RÉSOLUS
+   ================================================================ */
+
+async function startApp(profile) {
+  currentProfile = profile;
+  renderProfilePill(profile);
+  updateQuotaDisplay();
+  await renderSavedList();
+  renderObjections();
+}
+
+
+/* ================================================================
    INITIALISATION AU CHARGEMENT DE LA PAGE
    ================================================================ */
 
 document.addEventListener('DOMContentLoaded', () => {
-  renderProfilePill();
-  updateQuotaDisplay();
-  renderSavedList();
-  renderObjections();
-
-  if (!getProfile()) {
-    openOnboarding();
-  }
+  initAuthGate();
 });
