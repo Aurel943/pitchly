@@ -63,41 +63,14 @@ function renderProfilePill() {
 
 /* ================================================================
    BLOC 2 — GÉNÉRATEUR DE SCRIPT
-   generateScript() construit le texte à partir de templates simples.
-   C'est un PLACEHOLDER : la vraie version enverra ces mêmes
-   paramètres (secteur, canal, situation, ton, contexte) à l'API
-   Claude et affichera sa réponse à la place.
+   handleGenerate() envoie le profil + les choix du formulaire à
+   notre fonction backend (/api/generate), qui elle-même appelle
+   l'API Claude et renvoie le texte généré.
    ================================================================ */
 
 let currentTone = 'direct';
 
-// Un petit mot de politesse selon le ton choisi, pour varier le rendu
-const TONE_INTRO = {
-  direct: "Bonjour {nom}, j'irai droit au but.",
-  chaleureux: "Bonjour {nom}, j'espère que vous allez bien !",
-  expert: "Bonjour {nom}, en tant que professionnel du secteur,",
-};
-
-function buildTemplateText(profile, canal, situation, ton, contexte) {
-  const secteurLabel = LABELS_SECTEUR[profile.secteur];
-  const intro = TONE_INTRO[ton].replace('{nom}', 'Julie');
-
-  const corps = {
-    premier_contact: `Je vous contacte parce que j'accompagne des personnes dans le secteur "${secteurLabel}" avec une offre à ${profile.panier}. ${contexte ? contexte + '. ' : ''}Auriez-vous 2 minutes pour voir si cela peut vous être utile ?`,
-    relance: `Je reviens vers vous suite à notre dernier échange. ${contexte ? contexte + '. ' : ''}Où en êtes-vous dans votre réflexion ?`,
-    closing: `Nous avons fait le tour de votre besoin. ${contexte ? contexte + '. ' : ''}Voulez-vous qu'on démarre dès cette semaine ?`,
-  };
-
-  const canalNote = {
-    appel: '',
-    email: '\n\nObjet : proposition adaptée à votre situation',
-    linkedin: '\n\n(message court, ton plus informel qu\'un email)',
-  };
-
-  return intro + ' ' + corps[situation] + canalNote[canal];
-}
-
-function handleGenerate() {
+async function handleGenerate() {
   const profile = getProfile();
   if (!profile) {
     openOnboarding();
@@ -113,17 +86,49 @@ function handleGenerate() {
   const canal = document.getElementById('canalSelect').value;
   const situation = document.getElementById('situationSelect').value;
   const contexte = document.getElementById('contexteInput').value.trim();
+  const btn = document.getElementById('generateBtn');
 
-  const texte = buildTemplateText(profile, canal, situation, currentTone, contexte);
+  // petit état de chargement le temps que Claude réponde
+  btn.disabled = true;
+  btn.textContent = 'génération en cours…';
 
-  // Affichage du résultat
-  document.getElementById('outputText').textContent = texte;
-  document.getElementById('outputMeta').textContent = `${situation.replace('_', ' ')} · ${canal}`;
-  document.getElementById('outputCard').classList.add('visible');
-  document.getElementById('saveBtn').classList.remove('active'); // reset l'état favori
+  try {
+    const response = await fetch('/api/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        secteur: LABELS_SECTEUR[profile.secteur],
+        offre: profile.offre,
+        panier: profile.panier,
+        canal,
+        situation,
+        ton: currentTone,
+        contexte,
+      }),
+    });
 
-  incrementQuotaUsed();
-  updateQuotaDisplay();
+    const data = await response.json();
+
+    if (!response.ok) {
+      alert('Erreur : ' + (data.error || 'impossible de générer le script'));
+      return;
+    }
+
+    // Affichage du résultat
+    document.getElementById('outputText').textContent = data.texte;
+    document.getElementById('outputMeta').textContent = `${situation.replace('_', ' ')} · ${canal}`;
+    document.getElementById('outputCard').classList.add('visible');
+    document.getElementById('saveBtn').classList.remove('active'); // reset l'état favori
+
+    incrementQuotaUsed();
+    updateQuotaDisplay();
+
+  } catch (err) {
+    alert('Erreur réseau, réessaie dans un instant.');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '✦ générer le script';
+  }
 }
 
 // Gestion des pastilles de ton (direct / chaleureux / expert)
