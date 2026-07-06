@@ -1,2 +1,4 @@
 .vercel
 .claude/settings.local.json
+.env
+.env.local
