@@ -50,3 +50,11 @@ async function handleEmailLinkClick() {
     ? 'erreur : ' + error.message
     : `lien envoyé à ${email}, vérifie ta boîte mail.`;
 }
+
+// Adapte la nav selon la session (sans jamais rediriger automatiquement) :
+// connecté → "Mon dashboard" ; pas connecté → Connexion/Inscription.
+document.addEventListener('DOMContentLoaded', async () => {
+  const session = await getSession();
+  document.querySelectorAll('.auth-link').forEach(el => el.classList.toggle('hidden', !!session));
+  document.getElementById('navDashboardLink').classList.toggle('hidden', !session);
+});
