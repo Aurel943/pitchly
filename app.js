@@ -1,7 +1,7 @@
 /* ================================================================
    PITCHLY — app.js
    Vue d'ensemble du fichier (5 blocs) :
-   1. PROFIL      → gate auth/compte/métier + lire/écrire le profil
+   1. PROFIL      → accès + lire/écrire le profil métier
                     (Supabase, table "profiles" — voir aussi auth.js)
    2. GÉNÉRATEUR  → construire un script à partir de templates
                     (⚠️ à remplacer plus tard par un vrai appel à l'API Claude)
@@ -10,107 +10,36 @@
 
    L'auth (connexion Google/email, session, déconnexion) et les fonctions
    getProfile()/saveProfile() vivent dans auth.js, chargé avant ce fichier.
+   La gate complète (connexion, infos de compte, profil métier manquants)
+   vit sur dashboard.html — cette page suppose que tout est déjà en place
+   et redirige vers le dashboard si ce n'est pas le cas.
    ================================================================ */
 
 
 /* ================================================================
-   BLOC 1 — GATE AUTH / COMPTE / PROFIL MÉTIER
-   Trois étapes avant d'afficher l'app : session Supabase, infos de
-   compte (nom/date de naissance/téléphone), profil métier
-   (secteur/offre/panier). Chaque étape a sa propre modale.
+   BLOC 1 — ACCÈS
+   Vérifie session + profil complet ; sinon renvoie vers dashboard.html
+   qui gère la complétion (connexion, infos de compte, profil métier).
    ================================================================ */
 
 const QUOTA_GRATUIT = 5;
 
-function showOnly(overlayId) {
-  document.getElementById('authModal').classList.toggle('hidden', overlayId !== 'authModal');
-  document.getElementById('accountInfoModal').classList.toggle('hidden', overlayId !== 'accountInfoModal');
-  document.getElementById('onboardingModal').classList.toggle('hidden', overlayId !== 'onboardingModal');
-  document.getElementById('mainApp').classList.toggle('hidden', overlayId !== 'mainApp');
-}
-
-async function initAuthGate() {
+async function checkAccess() {
   const session = await getSession();
-
   if (!session) {
-    showOnly('authModal');
+    window.location.href = 'dashboard.html';
+    return;
+  }
+
+  const profile = await getProfile();
+  if (!profile || !profile.nom || !profile.secteur) {
+    window.location.href = 'dashboard.html';
     return;
   }
 
   document.getElementById('logoutBtn').classList.remove('hidden');
-
-  const profile = await getProfile();
-
-  if (!profile || !profile.nom) {
-    showOnly('accountInfoModal');
-    return;
-  }
-
-  if (!profile.secteur) {
-    showOnly('onboardingModal');
-    return;
-  }
-
-  showOnly('mainApp');
+  document.getElementById('mainApp').classList.remove('hidden');
   await startApp(profile);
-}
-
-supabaseClient.auth.onAuthStateChange((_event, session) => {
-  if (session && !currentUser) {
-    initAuthGate();
-  }
-});
-
-async function handleEmailLinkClick() {
-  const email = document.getElementById('authEmailInput').value.trim();
-  const status = document.getElementById('authStatus');
-  if (!email) return;
-
-  const btn = document.getElementById('authEmailBtn');
-  btn.disabled = true;
-
-  const { error } = await signInWithEmailLink(email);
-
-  btn.disabled = false;
-  status.textContent = error
-    ? 'erreur : ' + error.message
-    : `lien envoyé à ${email}, vérifie ta boîte mail.`;
-}
-
-async function handleAccountInfoSubmit() {
-  try {
-    const profile = await saveProfile({
-      nom: document.getElementById('accountNomInput').value.trim(),
-      date_naissance: document.getElementById('accountDateNaissanceInput').value || null,
-      telephone: document.getElementById('accountTelephoneInput').value.trim(),
-    });
-    if (!profile.secteur) {
-      showOnly('onboardingModal');
-      return;
-    }
-    showOnly('mainApp');
-    await startApp(profile);
-  } catch (err) {
-    alert('Erreur lors de la sauvegarde du compte : ' + err.message);
-  }
-}
-
-function openOnboarding() {
-  showOnly('onboardingModal');
-}
-
-async function handleOnboardingSubmit() {
-  try {
-    const profile = await saveProfile({
-      secteur: document.getElementById('secteurInput').value,
-      offre: document.getElementById('offreInput').value,
-      panier: document.getElementById('panierInput').value || 'non précisé',
-    });
-    showOnly('mainApp');
-    await startApp(profile);
-  } catch (err) {
-    alert('Erreur lors de la sauvegarde du profil : ' + err.message);
-  }
 }
 
 // Libellés lisibles pour l'affichage (les <select> stockent des codes courts)
@@ -425,5 +354,5 @@ async function startApp(profile) {
    ================================================================ */
 
 document.addEventListener('DOMContentLoaded', () => {
-  initAuthGate();
+  checkAccess();
 });

@@ -8,7 +8,7 @@ async function initAccountPage() {
   const session = await getSession();
 
   if (!session) {
-    window.location.href = 'app.html';
+    window.location.href = 'dashboard.html';
     return;
   }
 

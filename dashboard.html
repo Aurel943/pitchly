@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>pitchly — dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,400;0,600;1,500;1,600&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="auth.js"></script>
+
+<nav>
+  <div class="wrap">
+    <div class="logo"><span class="dot"></span>pitchly</div>
+    <div class="nav-right">
+      <div class="profile-pill" id="profilePill" onclick="openOnboarding()">
+        chargement du profil…
+      </div>
+      <a class="icon-btn" href="compte.html" title="mon compte">⚙</a>
+      <button class="icon-btn hidden" id="logoutBtn" onclick="handleLogout()" title="déconnexion">⏻</button>
+    </div>
+  </div>
+</nav>
+
+<main id="mainDashboard" class="hidden">
+  <div class="wrap">
+
+    <div class="card">
+      <div class="card-label">
+        <span id="welcomeMessage">bienvenue</span>
+        <span class="quota" id="quotaDisplay">— générations restantes</span>
+      </div>
+    </div>
+
+    <div class="shortcut-grid">
+      <a class="shortcut-card" href="app.html">
+        <span class="icon">✦</span>
+        <h3>générer un script</h3>
+        <p>appel, email ou LinkedIn, prêt en quelques secondes.</p>
+      </a>
+      <a class="shortcut-card" href="app.html#saved">
+        <span class="icon">★</span>
+        <h3>mes scripts</h3>
+        <p>retrouve, renomme et réutilise tes scripts sauvegardés.</p>
+      </a>
+      <a class="shortcut-card" href="compte.html">
+        <span class="icon">⚙</span>
+        <h3>mon compte</h3>
+        <p>infos personnelles et profil métier.</p>
+      </a>
+    </div>
+
+  </div>
+</main>
+
+<!-- ============ MODALE CONNEXION ============ -->
+<div class="modal-overlay hidden" id="authModal">
+  <div class="modal">
+    <h2>connecte-toi</h2>
+    <p class="desc">ton profil, tes scripts et ton quota te suivent partout.</p>
+
+    <button class="btn-primary" onclick="signInWithGoogle()">continuer avec Google</button>
+
+    <div class="auth-divider"><span>ou</span></div>
+
+    <div class="field">
+      <label>email</label>
+      <input type="email" id="authEmailInput" placeholder="toi@exemple.com">
+    </div>
+    <button class="btn-primary" id="authEmailBtn" onclick="handleEmailLinkClick()">recevoir un lien de connexion</button>
+    <p class="auth-status" id="authStatus"></p>
+  </div>
+</div>
+
+<!-- ============ MODALE INFOS DE COMPTE ============ -->
+<div class="modal-overlay hidden" id="accountInfoModal">
+  <div class="modal">
+    <h2>complète ton compte</h2>
+    <p class="desc">quelques infos avant de démarrer.</p>
+
+    <div class="field">
+      <label>nom</label>
+      <input type="text" id="accountNomInput" placeholder="ton nom">
+    </div>
+
+    <div class="field-row">
+      <div class="field">
+        <label>date de naissance</label>
+        <input type="date" id="accountDateNaissanceInput">
+      </div>
+      <div class="field">
+        <label>téléphone</label>
+        <input type="tel" id="accountTelephoneInput" placeholder="06 12 34 56 78">
+      </div>
+    </div>
+
+    <button class="btn-primary" onclick="handleAccountInfoSubmit()">continuer</button>
+  </div>
+</div>
+
+<!-- ============ MODALE ONBOARDING ============ -->
+<div class="modal-overlay hidden" id="onboardingModal">
+  <div class="modal">
+    <h2>parle-nous de ton activité</h2>
+    <p class="desc">on adapte chaque script généré à ton métier.</p>
+
+    <div class="field">
+      <label>secteur</label>
+      <select id="secteurInput">
+        <option value="coaching">coaching et bien-être</option>
+        <option value="artisanat">artisanat / BTP</option>
+        <option value="conseil">conseil et services intellectuels</option>
+        <option value="creatif">freelance créatif</option>
+        <option value="commerce">commerce et produit physique</option>
+      </select>
+    </div>
+
+    <div class="field-row">
+      <div class="field">
+        <label>type d'offre</label>
+        <select id="offreInput">
+          <option value="abonnement">abonnement</option>
+          <option value="ponctuelle">prestation ponctuelle</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>panier moyen</label>
+        <input type="text" id="panierInput" placeholder="ex : 89€/mois">
+      </div>
+    </div>
+
+    <button class="btn-primary" onclick="handleOnboardingSubmit()">continuer</button>
+  </div>
+</div>
+
+<script src="dashboard.js"></script>
+</body>
+</html>

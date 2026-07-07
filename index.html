@@ -161,8 +161,8 @@
       <a href="#features">Fonctionnalités</a>
       <a href="#how">Comment ça marche</a>
       <a href="#pricing">Tarifs</a>
-      <a href="#" onclick="handleCTAClick(); return false;">Se connecter</a>
-      <a href="#" onclick="handleCTAClick(); return false;" class="btn-nav">Essayer gratuitement</a>
+      <a href="#" onclick="handleCTAClick('login'); return false;">Connexion</a>
+      <a href="#" onclick="handleCTAClick('signup'); return false;" class="btn-nav">Inscription</a>
     </div>
   </div>
 </nav>
@@ -174,7 +174,7 @@
       <h1 class="headline">Un script de vente,<br><em>prêt en 10 secondes.</em></h1>
       <p class="sub">Pitchly génère tes appels, tes emails de prospection et tes réponses aux objections, adaptés à ton métier — pas des formules génériques copiées d'internet.</p>
       <div class="hero-ctas">
-        <button class="btn-primary" onclick="handleCTAClick()">Générer mon premier script</button>
+        <button class="btn-primary" onclick="handleCTAClick('signup')">Générer mon premier script</button>
         <a href="#how" class="btn-ghost">Voir comment ça marche →</a>
       </div>
     </div>
@@ -283,7 +283,7 @@
           <li>Bibliothèque d'objections de base</li>
           <li>1 profil métier</li>
         </ul>
-        <button class="btn-secondary" onclick="handleCTAClick()">Commencer gratuitement</button>
+        <button class="btn-secondary" onclick="handleCTAClick('signup')">Commencer gratuitement</button>
       </div>
       <div class="price-card featured">
         <span class="price-badge">populaire</span>
@@ -295,7 +295,7 @@
           <li>Scripts sauvegardés et organisés</li>
           <li>Tous les canaux (appel, email, LinkedIn)</li>
         </ul>
-        <button class="btn-primary" onclick="handleCTAClick()">Passer pro</button>
+        <button class="btn-primary" onclick="handleCTAClick('signup')">Passer pro</button>
       </div>
     </div>
   </div>
@@ -304,7 +304,7 @@
 <section class="final-cta ink-section">
   <div class="wrap">
     <h2 style="margin:0 auto 28px;color:var(--paper);">Ton prochain appel mérite mieux <em>qu'une improvisation.</em></h2>
-    <button class="btn-primary" onclick="handleCTAClick()">Générer mon premier script</button>
+    <button class="btn-primary" onclick="handleCTAClick('signup')">Générer mon premier script</button>
   </div>
 </section>
 
@@ -318,10 +318,10 @@
 <!-- ============ MODALE CONNEXION / INSCRIPTION ============ -->
 <div class="modal-overlay hidden" id="authModal">
   <div class="modal">
-    <h2>rejoins pitchly</h2>
-    <p class="desc">connecte-toi ou crée ton compte pour générer tes scripts.</p>
+    <h2 id="authModalTitle">rejoins pitchly</h2>
+    <p class="desc" id="authModalDesc">connecte-toi ou crée ton compte pour générer tes scripts.</p>
 
-    <button class="btn-primary" onclick="signInWithGoogle('app.html')">continuer avec Google</button>
+    <button class="btn-primary" onclick="signInWithGoogle('dashboard.html')">continuer avec Google</button>
 
     <div class="auth-divider"><span>ou</span></div>
 

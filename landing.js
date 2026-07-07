@@ -2,11 +2,23 @@
    PITCHLY — landing.js
    Logique d'inscription/connexion sur la landing page (index.html).
    Ne fait que déclencher l'auth (Google ou lien email) puis redirige
-   vers app.html, qui enchaîne lui-même la complétion du compte et du
-   profil métier.
+   vers dashboard.html, qui enchaîne lui-même la complétion du compte
+   et du profil métier.
+
+   Important : la landing reste toujours consultable, session ou pas —
+   pas de redirection automatique au chargement de la page. Seul un
+   clic explicite sur Connexion/Inscription déclenche une redirection.
    ================================================================ */
 
-function openAuthModal() {
+const AUTH_MODAL_TEXT = {
+  login: { title: 'content de te revoir', desc: 'connecte-toi pour retrouver ton espace.' },
+  signup: { title: 'crée ton compte', desc: 'inscris-toi pour générer tes premiers scripts.' },
+};
+
+function openAuthModal(mode) {
+  const text = AUTH_MODAL_TEXT[mode] || AUTH_MODAL_TEXT.signup;
+  document.getElementById('authModalTitle').textContent = text.title;
+  document.getElementById('authModalDesc').textContent = text.desc;
   document.getElementById('authModal').classList.remove('hidden');
 }
 
@@ -14,13 +26,13 @@ function closeAuthModal() {
   document.getElementById('authModal').classList.add('hidden');
 }
 
-async function handleCTAClick() {
+async function handleCTAClick(mode) {
   const session = await getSession();
   if (session) {
-    window.location.href = 'app.html';
+    window.location.href = 'dashboard.html';
     return;
   }
-  openAuthModal();
+  openAuthModal(mode);
 }
 
 async function handleEmailLinkClick() {
@@ -31,17 +43,10 @@ async function handleEmailLinkClick() {
   const btn = document.getElementById('authEmailBtn');
   btn.disabled = true;
 
-  const { error } = await signInWithEmailLink(email, window.location.origin + window.location.pathname);
+  const { error } = await signInWithEmailLink(email, window.location.origin + '/dashboard.html');
 
   btn.disabled = false;
   status.textContent = error
     ? 'erreur : ' + error.message
     : `lien envoyé à ${email}, vérifie ta boîte mail.`;
 }
-
-document.addEventListener('DOMContentLoaded', async () => {
-  const session = await getSession();
-  if (session) {
-    window.location.href = 'app.html';
-  }
-});
