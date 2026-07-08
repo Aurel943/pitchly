@@ -176,7 +176,16 @@ textarea{resize:vertical;min-height:64px;}
 /* ============================================
    DASHBOARD
    ============================================ */
-.shortcut-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;}
+.dashboard-section{margin-bottom:32px;}
+.dashboard-section:last-child{margin-bottom:0;}
+.section-label{
+  display:inline-flex;align-items:center;gap:10px;
+  font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:500;
+  letter-spacing:.1em;text-transform:uppercase;color:var(--text-on-ink-dim);
+  margin-bottom:14px;
+}
+.section-label::before{content:'';width:22px;height:1px;background:currentColor;flex-shrink:0;}
+.shortcut-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:18px;}
 .shortcut-card{
   background:var(--paper);color:var(--ink);border-radius:22px;padding:26px;display:block;
   transition:transform .3s var(--ease),box-shadow .3s ease;

@@ -109,43 +109,6 @@
       </div>
     </div>
 
-    <!-- ============ RÉPONDRE À UNE OBJECTION ============ -->
-    <div class="card">
-      <div class="card-label">
-        <span>répondre à une objection</span>
-        <span class="quota" id="quotaDisplayObjection">— générations restantes</span>
-      </div>
-
-      <div class="field">
-        <label>objection du prospect</label>
-        <textarea id="objectionInput" placeholder="ex : c'est trop cher pour moi"></textarea>
-      </div>
-
-      <button class="btn-primary" id="generateObjectionBtn" onclick="handleGenerateObjection()">
-        ✦ générer la réponse
-      </button>
-    </div>
-
-    <!-- ============ SORTIE OBJECTION ============ -->
-    <div class="output-card" id="objectionOutputCard">
-      <div class="output-head">
-        <span id="objectionOutputMeta">réponse générée</span>
-        <div class="output-actions">
-          <button class="icon-btn" id="copyObjectionBtn" onclick="handleCopyObjection()" title="copier">⧉</button>
-          <button class="icon-btn" id="saveObjectionBtn" onclick="handleSaveObjection()" title="sauvegarder">★</button>
-        </div>
-      </div>
-      <p class="output-text" id="objectionOutputText"></p>
-    </div>
-
-    <!-- ============ OBJECTIONS TRAITÉES ============ -->
-    <div class="card" id="savedObjections">
-      <div class="card-label"><span>mes objections traitées</span></div>
-      <div id="savedObjectionsList">
-        <!-- rempli dynamiquement par app.js -->
-      </div>
-    </div>
-
   </div>
 </main>
 

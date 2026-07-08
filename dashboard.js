@@ -6,8 +6,6 @@
    sauvegardés et le compte.
    ================================================================ */
 
-const QUOTA_GRATUIT = 5;
-
 function showOnly(overlayId) {
   document.getElementById('authModal').classList.toggle('hidden', overlayId !== 'authModal');
   document.getElementById('accountInfoModal').classList.toggle('hidden', overlayId !== 'accountInfoModal');
@@ -102,25 +100,10 @@ async function handleOnboardingSubmit() {
   }
 }
 
-function currentMonthKey() {
-  const now = new Date();
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-}
-
-// Libellés lisibles pour l'affichage (les <select> stockent des codes courts)
-const LABELS_SECTEUR = {
-  coaching: 'coaching et bien-être',
-  artisanat: 'artisanat / BTP',
-  conseil: 'conseil et services intellectuels',
-  creatif: 'freelance créatif',
-  commerce: 'commerce et produit physique',
-};
-
 function renderDashboard(profile) {
   document.getElementById('welcomeMessage').textContent = `bonjour ${profile.nom}`;
 
-  const quotaUsed = profile.quota_month === currentMonthKey() ? profile.quota_used : 0;
-  const restant = Math.max(0, QUOTA_GRATUIT - quotaUsed);
+  const restant = Math.max(0, QUOTA_GRATUIT - getQuotaUsed(profile));
   document.getElementById('quotaDisplay').textContent = `${restant} générations restantes`;
 
   const pill = document.getElementById('profilePill');

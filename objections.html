@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>pitchly — objections</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,400;0,600;1,500;1,600&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="auth.js"></script>
+
+<nav>
+  <div class="wrap">
+    <a class="logo" href="index.html"><span class="dot"></span>pitchly</a>
+    <div class="nav-right">
+      <!-- affiché dynamiquement par objections.js selon le profil enregistré -->
+      <div class="profile-pill" id="profilePill">
+        chargement du profil…
+      </div>
+      <a class="icon-btn" href="dashboard.html" title="dashboard">←</a>
+      <a class="icon-btn" href="compte.html" title="mon compte">⚙</a>
+      <button class="icon-btn hidden" id="logoutBtn" onclick="handleLogout()" title="déconnexion">⏻</button>
+    </div>
+  </div>
+</nav>
+
+<main id="mainObjections" class="hidden">
+  <div class="wrap">
+
+    <!-- ============ RÉPONDRE À UNE OBJECTION ============ -->
+    <div class="card">
+      <div class="card-label">
+        <span>répondre à une objection</span>
+        <span class="quota" id="quotaDisplay">— générations restantes</span>
+      </div>
+
+      <div class="field">
+        <label>objection du prospect</label>
+        <textarea id="objectionInput" placeholder="ex : c'est trop cher pour moi"></textarea>
+      </div>
+
+      <button class="btn-primary" id="generateObjectionBtn" onclick="handleGenerateObjection()">
+        ✦ générer la réponse
+      </button>
+    </div>
+
+    <!-- ============ SORTIE ============ -->
+    <div class="output-card" id="objectionOutputCard">
+      <div class="output-head">
+        <span id="objectionOutputMeta">réponse générée</span>
+        <div class="output-actions">
+          <button class="icon-btn" id="copyObjectionBtn" onclick="handleCopyObjection()" title="copier">⧉</button>
+          <button class="icon-btn" id="saveObjectionBtn" onclick="handleSaveObjection()" title="sauvegarder">★</button>
+        </div>
+      </div>
+      <p class="output-text" id="objectionOutputText"></p>
+    </div>
+
+    <!-- ============ OBJECTIONS TRAITÉES ============ -->
+    <div class="card" id="saved">
+      <div class="card-label"><span>mes objections traitées</span></div>
+      <div id="savedObjectionsList">
+        <!-- rempli dynamiquement par objections.js -->
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<script src="objections.js"></script>
+</body>
+</html>

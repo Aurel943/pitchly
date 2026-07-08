@@ -1,15 +1,21 @@
 /* ================================================================
    PITCHLY — app.js
-   Vue d'ensemble du fichier (5 blocs) :
+   Vue d'ensemble du fichier (4 blocs) :
    1. PROFIL      → accès + lire/écrire le profil métier
                     (Supabase, table "profiles" — voir aussi auth.js)
    2. GÉNÉRATEUR  → construire un script à partir de templates
                     (⚠️ à remplacer plus tard par un vrai appel à l'API Claude)
    3. SAUVEGARDE  → gérer la liste des scripts favoris (table "saved_scripts")
-   4. OBJECTIONS  → afficher/masquer les réponses au clic
+   4. COPIER      → copier le script dans le presse-papier
 
-   L'auth (connexion Google/email, session, déconnexion) et les fonctions
-   getProfile()/saveProfile() vivent dans auth.js, chargé avant ce fichier.
+   L'auth (connexion Google/email, session, déconnexion), les fonctions
+   getProfile()/saveProfile() et les constantes/quota partagés (QUOTA_GRATUIT,
+   LABELS_SECTEUR, getQuotaUsed, incrementQuotaUsed) vivent dans auth.js,
+   chargé avant ce fichier.
+
+   La réponse aux objections vit sur sa propre page (objections.html /
+   objections.js), séparée du générateur de script.
+
    La gate complète (connexion, infos de compte, profil métier manquants)
    vit sur dashboard.html — cette page suppose que tout est déjà en place
    et redirige vers le dashboard si ce n'est pas le cas.
@@ -21,8 +27,6 @@
    Vérifie session + profil complet ; sinon renvoie vers dashboard.html
    qui gère la complétion (connexion, infos de compte, profil métier).
    ================================================================ */
-
-const QUOTA_GRATUIT = 5;
 
 async function checkAccess() {
   const session = await getSession();
@@ -41,15 +45,6 @@ async function checkAccess() {
   document.getElementById('mainApp').classList.remove('hidden');
   await startApp(profile);
 }
-
-// Libellés lisibles pour l'affichage (les <select> stockent des codes courts)
-const LABELS_SECTEUR = {
-  coaching: 'coaching et bien-être',
-  artisanat: 'artisanat / BTP',
-  conseil: 'conseil et services intellectuels',
-  creatif: 'freelance créatif',
-  commerce: 'commerce et produit physique',
-};
 
 function renderProfilePill(profile) {
   const pill = document.getElementById('profilePill');
@@ -71,33 +66,13 @@ function renderProfilePill(profile) {
 let currentTone = 'direct';
 let currentProfile = null;
 
-function currentMonthKey() {
-  const now = new Date();
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-}
-
-function getQuotaUsed() {
-  return currentProfile.quota_month === currentMonthKey() ? currentProfile.quota_used : 0;
-}
-
-async function incrementQuotaUsed() {
-  const usedThisMonth = getQuotaUsed();
-  currentProfile = await saveProfile({
-    quota_used: usedThisMonth + 1,
-    quota_month: currentMonthKey(),
-  });
-}
-
 function updateQuotaDisplay() {
-  const restant = Math.max(0, QUOTA_GRATUIT - getQuotaUsed());
-  const texte = `${restant} générations restantes`;
-  document.getElementById('quotaDisplay').textContent = texte;
-  const objectionQuota = document.getElementById('quotaDisplayObjection');
-  if (objectionQuota) objectionQuota.textContent = texte;
+  const restant = Math.max(0, QUOTA_GRATUIT - getQuotaUsed(currentProfile));
+  document.getElementById('quotaDisplay').textContent = `${restant} générations restantes`;
 }
 
 async function handleGenerate() {
-  if (getQuotaUsed() >= QUOTA_GRATUIT) {
+  if (getQuotaUsed(currentProfile) >= QUOTA_GRATUIT) {
     alert('Quota gratuit atteint pour ce mois-ci. (ici on brancherait la modale "passer pro")');
     return;
   }
@@ -139,7 +114,7 @@ async function handleGenerate() {
     document.getElementById('outputCard').classList.add('visible');
     document.getElementById('saveBtn').classList.remove('active'); // reset l'état favori
 
-    await incrementQuotaUsed();
+    currentProfile = await incrementQuotaUsed(currentProfile);
     updateQuotaDisplay();
 
   } catch (err) {
@@ -302,7 +277,7 @@ function handleCopyScriptModal() {
 
 
 /* ================================================================
-   COPIER LE SCRIPT DANS LE PRESSE-PAPIER
+   BLOC 4 — COPIER LE SCRIPT DANS LE PRESSE-PAPIER
    ================================================================ */
 
 function handleCopy() {
@@ -317,128 +292,6 @@ function handleCopy() {
 
 
 /* ================================================================
-   BLOC 4 — RÉPONDRE À UNE OBJECTION
-   Même logique que le générateur de script : l'utilisateur saisit
-   l'objection reçue, Claude génère une réponse (/api/objections) à
-   la demande (pas d'appel automatique), et le couple objection/
-   réponse peut être sauvegardé (table "saved_objections").
-   Partage le même quota mensuel que le générateur de script pour ne
-   pas multiplier les coûts d'API.
-   ================================================================ */
-
-async function handleGenerateObjection() {
-  if (getQuotaUsed() >= QUOTA_GRATUIT) {
-    alert('Quota gratuit atteint pour ce mois-ci. (ici on brancherait la modale "passer pro")');
-    return;
-  }
-
-  const objection = document.getElementById('objectionInput').value.trim();
-  if (!objection) return;
-
-  const btn = document.getElementById('generateObjectionBtn');
-  btn.disabled = true;
-  btn.textContent = 'génération en cours…';
-
-  try {
-    const response = await fetch('/api/objections', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        secteur: LABELS_SECTEUR[currentProfile.secteur] || currentProfile.secteur,
-        offre: currentProfile.offre,
-        objection,
-      }),
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      alert('Erreur : ' + (data.error || 'impossible de générer la réponse'));
-      return;
-    }
-
-    document.getElementById('objectionOutputText').textContent = data.reponse;
-    document.getElementById('objectionOutputMeta').textContent = objection.slice(0, 60);
-    document.getElementById('objectionOutputCard').classList.add('visible');
-    document.getElementById('saveObjectionBtn').classList.remove('active');
-
-    await incrementQuotaUsed();
-    updateQuotaDisplay();
-
-  } catch (err) {
-    alert('Erreur réseau, réessaie dans un instant.');
-  } finally {
-    btn.disabled = false;
-    btn.textContent = '✦ générer la réponse';
-  }
-}
-
-function handleCopyObjection() {
-  const texte = document.getElementById('objectionOutputText').textContent;
-  navigator.clipboard.writeText(texte);
-
-  const btn = document.getElementById('copyObjectionBtn');
-  const original = btn.textContent;
-  btn.textContent = '✓';
-  setTimeout(() => { btn.textContent = original; }, 1200);
-}
-
-async function getSavedObjections() {
-  const { data } = await supabaseClient
-    .from('saved_objections')
-    .select('*')
-    .order('created_at', { ascending: false });
-  return data || [];
-}
-
-async function handleSaveObjection() {
-  const objection = document.getElementById('objectionInput').value.trim();
-  const reponse = document.getElementById('objectionOutputText').textContent;
-  if (!objection || !reponse) return;
-
-  await supabaseClient
-    .from('saved_objections')
-    .insert({ user_id: currentUser.id, objection, reponse });
-
-  document.getElementById('saveObjectionBtn').classList.add('active');
-  await renderSavedObjectionsList();
-}
-
-async function handleDeleteObjection(id) {
-  if (!confirm('Supprimer cette objection sauvegardée ?')) return;
-
-  await supabaseClient
-    .from('saved_objections')
-    .delete()
-    .eq('id', id);
-
-  await renderSavedObjectionsList();
-}
-
-async function renderSavedObjectionsList() {
-  const container = document.getElementById('savedObjectionsList');
-  const list = await getSavedObjections();
-
-  if (list.length === 0) {
-    container.innerHTML = '<p class="empty-state">aucune objection traitée pour l\'instant.</p>';
-    return;
-  }
-
-  container.innerHTML = list.map(o => `
-    <div class="saved-item">
-      <div class="saved-item-head">
-        <span class="name">${o.objection.slice(0, 60)}</span>
-        <div class="saved-item-actions">
-          <button class="icon-btn" onclick="handleDeleteObjection('${o.id}')" title="supprimer">🗑</button>
-        </div>
-      </div>
-      <p>${o.reponse.slice(0, 140)}${o.reponse.length > 140 ? '…' : ''}</p>
-    </div>
-  `).join('');
-}
-
-
-/* ================================================================
    DÉMARRAGE DE L'APP UNE FOIS AUTH + PROFIL RÉSOLUS
    ================================================================ */
 
@@ -447,7 +300,6 @@ async function startApp(profile) {
   renderProfilePill(profile);
   updateQuotaDisplay();
   await renderSavedList();
-  await renderSavedObjectionsList();
 }
 
 
