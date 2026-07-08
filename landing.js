@@ -14,13 +14,15 @@ const AUTH_MODAL_TEXT = {
   login: {
     title: 'content de te revoir',
     desc: 'connecte-toi pour retrouver ton espace.',
-    switchText: 'toujours pas inscrit ? crée ton compte',
+    switchQuestion: 'toujours pas inscrit ?',
+    switchAction: 'crée ton compte',
     switchMode: 'signup',
   },
   signup: {
     title: 'crée ton compte',
     desc: 'inscris-toi pour générer tes premiers scripts.',
-    switchText: 'déjà inscrit ? connecte-toi',
+    switchQuestion: 'déjà inscrit ?',
+    switchAction: 'connecte-toi',
     switchMode: 'login',
   },
 };
@@ -32,7 +34,8 @@ function openAuthModal(mode) {
   const text = AUTH_MODAL_TEXT[mode] || AUTH_MODAL_TEXT.signup;
   document.getElementById('authModalTitle').textContent = text.title;
   document.getElementById('authModalDesc').textContent = text.desc;
-  document.getElementById('authSwitchLink').textContent = text.switchText;
+  document.getElementById('authSwitchQuestion').textContent = text.switchQuestion;
+  document.getElementById('authSwitchLink').textContent = text.switchAction;
   document.getElementById('authStatus').textContent = '';
   document.getElementById('authModal').classList.remove('hidden');
 }
