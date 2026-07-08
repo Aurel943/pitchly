@@ -79,10 +79,6 @@ async function handleAccountInfoSubmit() {
   }
 }
 
-function openOnboarding() {
-  showOnly('onboardingModal');
-}
-
 async function handleOnboardingSubmit() {
   try {
     const secteurValue = document.getElementById('secteurInput').value;
@@ -106,8 +102,8 @@ function renderDashboard(profile) {
   const restant = Math.max(0, QUOTA_GRATUIT - getQuotaUsed(profile));
   document.getElementById('quotaDisplay').textContent = `${restant} générations restantes`;
 
-  const pill = document.getElementById('profilePill');
-  pill.textContent = LABELS_SECTEUR[profile.secteur] || profile.secteur;
+  document.getElementById('navAvatarInitial').textContent = profile.nom ? profile.nom[0].toUpperCase() : '?';
+  document.getElementById('navAvatarName').textContent = profile.nom || 'mon compte';
 }
 
 document.addEventListener('DOMContentLoaded', () => {
