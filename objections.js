@@ -113,9 +113,14 @@ async function handleSaveObjection() {
   const reponse = document.getElementById('objectionOutputText').textContent;
   if (!objection || !reponse) return;
 
-  await supabaseClient
+  const { error } = await supabaseClient
     .from('saved_objections')
     .insert({ user_id: currentUser.id, objection, reponse });
+
+  if (error) {
+    alert('Erreur lors de la sauvegarde : ' + error.message);
+    return;
+  }
 
   document.getElementById('saveObjectionBtn').classList.add('active');
   await renderSavedObjectionsList();
