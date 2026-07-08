@@ -201,7 +201,7 @@ async function renderSavedList() {
           <button class="icon-btn" onclick="event.stopPropagation(); handleDeleteScript('${s.id}')" title="supprimer">🗑</button>
         </div>
       </div>
-      <span class="tag">${s.situation.replace('_', ' ')} · ${s.canal}</span>
+      <span class="tag">${s.situation.replace('_', ' ')} · ${s.canal} · ${formatDateTime(s.created_at)}</span>
       <p>${s.texte.slice(0, 90)}${s.texte.length > 90 ? '…' : ''}</p>
     </div>
   `).join('');
@@ -236,7 +236,7 @@ function openScriptDetail(id) {
 
   currentScriptId = id;
   document.getElementById('scriptModalName').value = script.nom || '';
-  document.getElementById('scriptModalMeta').textContent = `${script.situation.replace('_', ' ')} · ${script.canal}`;
+  document.getElementById('scriptModalMeta').textContent = `${script.situation.replace('_', ' ')} · ${script.canal} · ${formatDateTime(script.created_at)}`;
   document.getElementById('scriptModalText').textContent = script.texte;
   document.getElementById('scriptModal').classList.remove('hidden');
 }

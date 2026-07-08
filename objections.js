@@ -100,6 +100,11 @@ function handleCopyObjection() {
   setTimeout(() => { btn.textContent = original; }, 1200);
 }
 
+let currentObjectionSearch = '';
+let currentObjectionSort = 'recent';
+let lastSavedObjections = [];
+let currentObjectionId = null;
+
 async function getSavedObjections() {
   const { data } = await supabaseClient
     .from('saved_objections')
@@ -129,17 +134,34 @@ async function handleSaveObjection() {
 async function handleDeleteObjection(id) {
   if (!confirm('Supprimer cette objection sauvegardée ?')) return;
 
-  await supabaseClient
+  const { error } = await supabaseClient
     .from('saved_objections')
     .delete()
     .eq('id', id);
 
+  if (error) {
+    alert('Erreur lors de la suppression : ' + error.message);
+    return;
+  }
+
+  if (currentObjectionId === id) closeObjectionModal();
   await renderSavedObjectionsList();
 }
 
 async function renderSavedObjectionsList() {
   const container = document.getElementById('savedObjectionsList');
-  const list = await getSavedObjections();
+  lastSavedObjections = await getSavedObjections();
+
+  let list = lastSavedObjections;
+
+  if (currentObjectionSearch) {
+    const q = currentObjectionSearch.toLowerCase();
+    list = list.filter(o => o.objection.toLowerCase().includes(q) || o.reponse.toLowerCase().includes(q));
+  }
+
+  if (currentObjectionSort === 'oldest') {
+    list = [...list].reverse();
+  }
 
   if (list.length === 0) {
     container.innerHTML = '<p class="empty-state">aucune objection traitée pour l\'instant.</p>';
@@ -147,16 +169,53 @@ async function renderSavedObjectionsList() {
   }
 
   container.innerHTML = list.map(o => `
-    <div class="saved-item">
+    <div class="saved-item" onclick="openObjectionDetail('${o.id}')">
       <div class="saved-item-head">
         <span class="name">${o.objection.slice(0, 60)}</span>
         <div class="saved-item-actions">
-          <button class="icon-btn" onclick="handleDeleteObjection('${o.id}')" title="supprimer">🗑</button>
+          <button class="icon-btn" onclick="event.stopPropagation(); handleDeleteObjection('${o.id}')" title="supprimer">🗑</button>
         </div>
       </div>
+      <span class="tag">${formatDateTime(o.created_at)}</span>
       <p>${o.reponse.slice(0, 140)}${o.reponse.length > 140 ? '…' : ''}</p>
     </div>
   `).join('');
+}
+
+document.getElementById('savedObjectionsSearchInput').addEventListener('input', (e) => {
+  currentObjectionSearch = e.target.value.trim();
+  renderSavedObjectionsList();
+});
+
+document.getElementById('savedObjectionsSortSelect').addEventListener('change', (e) => {
+  currentObjectionSort = e.target.value;
+  renderSavedObjectionsList();
+});
+
+
+/* ================================================================
+   MODALE DÉTAIL D'UNE OBJECTION SAUVEGARDÉE
+   ================================================================ */
+
+function openObjectionDetail(id) {
+  const o = lastSavedObjections.find(x => x.id === id);
+  if (!o) return;
+
+  currentObjectionId = id;
+  document.getElementById('objectionModalQuestion').textContent = o.objection;
+  document.getElementById('objectionModalMeta').textContent = formatDateTime(o.created_at);
+  document.getElementById('objectionModalText').textContent = o.reponse;
+  document.getElementById('objectionModal').classList.remove('hidden');
+}
+
+function closeObjectionModal() {
+  document.getElementById('objectionModal').classList.add('hidden');
+  currentObjectionId = null;
+}
+
+function handleCopyObjectionModal() {
+  const texte = document.getElementById('objectionModalText').textContent;
+  navigator.clipboard.writeText(texte);
 }
 
 async function startApp(profile) {

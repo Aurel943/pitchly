@@ -42,6 +42,14 @@ async function incrementQuotaUsed(profile) {
   });
 }
 
+// Formate une date Supabase (ISO) en "8 juil. 2026 · 20:34"
+function formatDateTime(isoString) {
+  const d = new Date(isoString);
+  const date = d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
+  const time = d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+  return `${date} · ${time}`;
+}
+
 async function getSession() {
   const { data: { session } } = await supabaseClient.auth.getSession();
   if (session) currentUser = session.user;

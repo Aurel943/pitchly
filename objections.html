@@ -63,6 +63,13 @@
     <!-- ============ OBJECTIONS TRAITÉES ============ -->
     <div class="card" id="saved">
       <div class="card-label"><span>mes objections traitées</span></div>
+      <div class="saved-toolbar">
+        <input type="text" id="savedObjectionsSearchInput" placeholder="rechercher dans mes objections…">
+        <select id="savedObjectionsSortSelect">
+          <option value="recent">plus récentes</option>
+          <option value="oldest">plus anciennes</option>
+        </select>
+      </div>
       <div id="savedObjectionsList">
         <!-- rempli dynamiquement par objections.js -->
       </div>
@@ -70,6 +77,22 @@
 
   </div>
 </main>
+
+<!-- ============ MODALE DÉTAIL OBJECTION ============ -->
+<div class="modal-overlay hidden" id="objectionModal">
+  <div class="modal modal-wide">
+    <div class="modal-head">
+      <h3 id="objectionModalQuestion"></h3>
+      <button class="icon-btn" onclick="closeObjectionModal()" title="fermer">✕</button>
+    </div>
+    <span class="tag" id="objectionModalMeta"></span>
+    <p class="script-modal-text" id="objectionModalText"></p>
+    <div class="modal-actions">
+      <button class="icon-btn" onclick="handleCopyObjectionModal()" title="copier">⧉ copier</button>
+      <button class="icon-btn danger" onclick="handleDeleteObjection(currentObjectionId)" title="supprimer">🗑 supprimer</button>
+    </div>
+  </div>
+</div>
 
 <script src="objections.js"></script>
 </body>

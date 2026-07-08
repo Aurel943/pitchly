@@ -228,6 +228,7 @@ textarea{resize:vertical;min-height:64px;}
    ============================================ */
 .modal-wide{max-width:580px;}
 .modal-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px;}
+.modal-head h3{font-family:'Fraunces',serif;font-size:19px;font-weight:600;flex:1;}
 .script-name-input{font-family:'Fraunces',serif;font-size:20px;font-weight:600;border:none!important;background:none!important;padding:4px 0!important;flex:1;border-radius:0!important;box-shadow:none!important;}
 .script-name-input:focus{outline:none;border-bottom:1px solid var(--gold)!important;}
 .modal .tag{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.04em;color:var(--moss);}
