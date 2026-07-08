@@ -26,66 +26,126 @@
   <div class="wrap">
     <a class="back-link" href="dashboard.html">← retour au dashboard</a>
 
-    <!-- ============ INFOS DE COMPTE ============ -->
+    <!-- ============ EN-TÊTE PROFIL ============ -->
+    <div class="card profile-header">
+      <div class="avatar" id="profileAvatar">?</div>
+      <div class="profile-header-info">
+        <h2 id="profileHeaderName">—</h2>
+        <p class="profile-header-meta" id="profileHeaderSector">—</p>
+        <p class="profile-header-meta" id="profileHeaderEmail">—</p>
+      </div>
+    </div>
+
+    <!-- ============ INFORMATIONS PERSONNELLES ============ -->
     <div class="card">
-      <div class="card-label"><span>informations du compte</span></div>
-
-      <div class="field">
-        <label>email</label>
-        <input type="email" id="accountEmailDisplay" disabled>
+      <div class="card-label">
+        <span>informations personnelles</span>
+        <button class="btn-edit" id="accountEditBtn" onclick="setAccountEditing(true)">✎ modifier</button>
       </div>
 
-      <div class="field">
-        <label>nom</label>
-        <input type="text" id="accountNomInput" placeholder="ton nom">
-      </div>
-
-      <div class="field-row">
-        <div class="field">
-          <label>date de naissance</label>
-          <input type="date" id="accountDateNaissanceInput">
+      <div class="info-grid" id="accountView">
+        <div class="info-item">
+          <span class="info-label">nom</span>
+          <span class="info-value" id="viewNom">—</span>
         </div>
-        <div class="field">
-          <label>téléphone</label>
-          <input type="tel" id="accountTelephoneInput" placeholder="06 12 34 56 78">
+        <div class="info-item">
+          <span class="info-label">email</span>
+          <span class="info-value" id="viewEmail">—</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">date de naissance</span>
+          <span class="info-value" id="viewDateNaissance">—</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">téléphone</span>
+          <span class="info-value" id="viewTelephone">—</span>
         </div>
       </div>
 
-      <button class="btn-primary" onclick="handleSaveAccountInfo()">enregistrer</button>
+      <div class="edit-fields hidden" id="accountEdit">
+        <div class="field">
+          <label>email</label>
+          <input type="email" id="accountEmailDisplay" disabled>
+        </div>
+
+        <div class="field">
+          <label>nom</label>
+          <input type="text" id="accountNomInput" placeholder="ton nom">
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <label>date de naissance</label>
+            <input type="date" id="accountDateNaissanceInput">
+          </div>
+          <div class="field">
+            <label>téléphone</label>
+            <input type="tel" id="accountTelephoneInput" placeholder="06 12 34 56 78">
+          </div>
+        </div>
+
+        <div class="edit-actions">
+          <button class="btn-primary" onclick="handleSaveAccountInfo()">enregistrer</button>
+          <button class="btn-text" onclick="setAccountEditing(false)">annuler</button>
+        </div>
+      </div>
     </div>
 
     <!-- ============ PROFIL MÉTIER ============ -->
     <div class="card">
-      <div class="card-label"><span>profil métier</span></div>
-
-      <div class="field">
-        <label>secteur</label>
-        <select id="secteurInput" onchange="toggleSecteurAutre('secteurInput', 'secteurAutreInput')">
-          <option value="coaching">coaching et bien-être</option>
-          <option value="artisanat">artisanat / BTP</option>
-          <option value="conseil">conseil et services intellectuels</option>
-          <option value="creatif">freelance créatif</option>
-          <option value="commerce">commerce et produit physique</option>
-          <option value="autre">autre (précise)</option>
-        </select>
-        <input type="text" id="secteurAutreInput" class="hidden" placeholder="ex : photographe animalier">
+      <div class="card-label">
+        <span>profil métier</span>
+        <button class="btn-edit" id="businessEditBtn" onclick="setBusinessEditing(true)">✎ modifier</button>
       </div>
 
-      <div class="field-row">
+      <div class="info-grid" id="businessView">
+        <div class="info-item">
+          <span class="info-label">secteur</span>
+          <span class="info-value" id="viewSecteur">—</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">type d'offre</span>
+          <span class="info-value" id="viewOffre">—</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">panier moyen</span>
+          <span class="info-value" id="viewPanier">—</span>
+        </div>
+      </div>
+
+      <div class="edit-fields hidden" id="businessEdit">
         <div class="field">
-          <label>type d'offre</label>
-          <select id="offreInput">
-            <option value="abonnement">abonnement</option>
-            <option value="ponctuelle">prestation ponctuelle</option>
+          <label>secteur</label>
+          <select id="secteurInput" onchange="toggleSecteurAutre('secteurInput', 'secteurAutreInput')">
+            <option value="coaching">coaching et bien-être</option>
+            <option value="artisanat">artisanat / BTP</option>
+            <option value="conseil">conseil et services intellectuels</option>
+            <option value="creatif">freelance créatif</option>
+            <option value="commerce">commerce et produit physique</option>
+            <option value="autre">autre (précise)</option>
           </select>
+          <input type="text" id="secteurAutreInput" class="hidden" placeholder="ex : photographe animalier">
         </div>
-        <div class="field">
-          <label>panier moyen</label>
-          <input type="text" id="panierInput" placeholder="ex : 89€/mois">
+
+        <div class="field-row">
+          <div class="field">
+            <label>type d'offre</label>
+            <select id="offreInput">
+              <option value="abonnement">abonnement</option>
+              <option value="ponctuelle">prestation ponctuelle</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>panier moyen</label>
+            <input type="text" id="panierInput" placeholder="ex : 89€/mois">
+          </div>
+        </div>
+
+        <div class="edit-actions">
+          <button class="btn-primary" onclick="handleSaveBusinessProfile()">enregistrer</button>
+          <button class="btn-text" onclick="setBusinessEditing(false)">annuler</button>
         </div>
       </div>
-
-      <button class="btn-primary" onclick="handleSaveBusinessProfile()">enregistrer</button>
     </div>
   </div>
 </main>

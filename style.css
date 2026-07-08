@@ -91,6 +91,36 @@ main{padding:44px 0 90px;}
 .quota{font-size:11px;font-weight:600;letter-spacing:.04em;color:var(--rust);background:rgba(181,87,62,0.12);padding:5px 12px;border-radius:100px;text-transform:none;}
 
 /* ============================================
+   PAGE COMPTE — en-tête profil, vue lecture, édition
+   ============================================ */
+.profile-header{display:flex;align-items:center;gap:20px;}
+.avatar{
+  width:64px;height:64px;flex-shrink:0;border-radius:50%;
+  background:var(--gold);color:var(--ink);
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Fraunces',serif;font-size:26px;font-weight:600;
+}
+.profile-header-info h2{font-size:20px;margin-bottom:4px;color:var(--ink);}
+.profile-header-meta{font-size:13px;color:var(--text-muted);}
+.profile-header-meta+.profile-header-meta{margin-top:2px;}
+
+.btn-edit{
+  font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;letter-spacing:.04em;
+  color:var(--ink);background:var(--gold);padding:6px 14px;border-radius:100px;border:none;
+  cursor:pointer;transition:background .25s ease,transform .2s var(--ease);text-transform:none;
+}
+.btn-edit:hover{background:var(--gold-dim);transform:translateY(-1px);}
+
+.info-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:20px 24px;}
+.info-item .info-label{display:block;font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.06em;color:var(--text-muted);margin-bottom:5px;}
+.info-item .info-value{display:block;font-size:15px;color:var(--ink);font-weight:500;overflow-wrap:break-word;}
+
+.edit-actions{display:flex;align-items:center;gap:16px;}
+.edit-actions .btn-primary{width:auto;flex:1;}
+.btn-text{background:none;border:none;color:var(--text-muted);font-size:13px;cursor:pointer;padding:8px;transition:color .2s ease;}
+.btn-text:hover{color:var(--ink);}
+
+/* ============================================
    FORMULAIRES
    ============================================ */
 select, textarea,
