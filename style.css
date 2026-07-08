@@ -193,16 +193,6 @@ textarea{resize:vertical;min-height:64px;}
 @media(max-width:720px){.shortcut-grid{grid-template-columns:1fr;}}
 
 /* ============================================
-   OBJECTIONS
-   ============================================ */
-.obj-item{border:1px solid rgba(22,41,44,0.12);border-radius:14px;padding:15px 18px;margin-bottom:10px;cursor:pointer;transition:border-color .25s ease,transform .25s var(--ease);}
-.obj-item:hover{border-color:var(--rust);transform:translateX(5px);}
-.obj-item .q{font-family:'Fraunces',serif;font-style:italic;font-size:15px;}
-.obj-item .r{font-size:13.5px;color:var(--moss);margin-top:8px;display:none;}
-.obj-item.open{border-color:var(--rust);}
-.obj-item.open .r{display:block;animation:cardIn .35s var(--ease) both;}
-
-/* ============================================
    MODALES
    ============================================ */
 .modal-overlay{position:fixed;inset:0;background:rgba(15,29,31,.75);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;z-index:300;padding:20px;animation:overlayIn .3s ease both;}

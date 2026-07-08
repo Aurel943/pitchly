@@ -55,3 +55,23 @@ create policy "saved_scripts: update own" on public.saved_scripts
 
 create policy "saved_scripts: delete own" on public.saved_scripts
   for delete using (auth.uid() = user_id);
+
+-- OBJECTIONS TRAITÉES — une ligne par objection saisie + réponse générée.
+create table if not exists public.saved_objections (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  objection text not null,
+  reponse text not null,
+  created_at timestamptz not null default now()
+);
+
+alter table public.saved_objections enable row level security;
+
+create policy "saved_objections: select own" on public.saved_objections
+  for select using (auth.uid() = user_id);
+
+create policy "saved_objections: insert own" on public.saved_objections
+  for insert with check (auth.uid() = user_id);
+
+create policy "saved_objections: delete own" on public.saved_objections
+  for delete using (auth.uid() = user_id);

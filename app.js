@@ -90,7 +90,10 @@ async function incrementQuotaUsed() {
 
 function updateQuotaDisplay() {
   const restant = Math.max(0, QUOTA_GRATUIT - getQuotaUsed());
-  document.getElementById('quotaDisplay').textContent = `${restant} générations restantes`;
+  const texte = `${restant} générations restantes`;
+  document.getElementById('quotaDisplay').textContent = texte;
+  const objectionQuota = document.getElementById('quotaDisplayObjection');
+  if (objectionQuota) objectionQuota.textContent = texte;
 }
 
 async function handleGenerate() {
@@ -314,50 +317,124 @@ function handleCopy() {
 
 
 /* ================================================================
-   BLOC 4 — BIBLIOTHÈQUE D'OBJECTIONS
-   Générées par Claude (/api/objections), adaptées au secteur/offre
-   du profil. Mises en cache dans sessionStorage (clé secteur+offre)
-   pour ne pas refacturer un appel à chaque navigation.
+   BLOC 4 — RÉPONDRE À UNE OBJECTION
+   Même logique que le générateur de script : l'utilisateur saisit
+   l'objection reçue, Claude génère une réponse (/api/objections) à
+   la demande (pas d'appel automatique), et le couple objection/
+   réponse peut être sauvegardé (table "saved_objections").
+   Partage le même quota mensuel que le générateur de script pour ne
+   pas multiplier les coûts d'API.
    ================================================================ */
 
-function objectionsCacheKey(profile) {
-  return `pitchly_objections_${profile.secteur}_${profile.offre}`;
-}
+async function handleGenerateObjection() {
+  if (getQuotaUsed() >= QUOTA_GRATUIT) {
+    alert('Quota gratuit atteint pour ce mois-ci. (ici on brancherait la modale "passer pro")');
+    return;
+  }
 
-async function fetchObjections(profile) {
-  const cacheKey = objectionsCacheKey(profile);
-  const cached = sessionStorage.getItem(cacheKey);
-  if (cached) return JSON.parse(cached);
+  const objection = document.getElementById('objectionInput').value.trim();
+  if (!objection) return;
 
-  const secteurLabel = LABELS_SECTEUR[profile.secteur] || profile.secteur;
-  const response = await fetch('/api/objections', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ secteur: secteurLabel, offre: profile.offre }),
-  });
-
-  const data = await response.json();
-  if (!response.ok) throw new Error(data.error || 'impossible de générer les objections');
-
-  sessionStorage.setItem(cacheKey, JSON.stringify(data.objections));
-  return data.objections;
-}
-
-async function renderObjections(profile) {
-  const container = document.getElementById('objectionsList');
-  container.innerHTML = '<p class="empty-state">génération des objections en cours…</p>';
+  const btn = document.getElementById('generateObjectionBtn');
+  btn.disabled = true;
+  btn.textContent = 'génération en cours…';
 
   try {
-    const objections = await fetchObjections(profile);
-    container.innerHTML = objections.map(o => `
-      <div class="obj-item" onclick="this.classList.toggle('open')">
-        <p class="q">« ${o.q} »</p>
-        <p class="r">${o.r}</p>
-      </div>
-    `).join('');
+    const response = await fetch('/api/objections', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        secteur: LABELS_SECTEUR[currentProfile.secteur] || currentProfile.secteur,
+        offre: currentProfile.offre,
+        objection,
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      alert('Erreur : ' + (data.error || 'impossible de générer la réponse'));
+      return;
+    }
+
+    document.getElementById('objectionOutputText').textContent = data.reponse;
+    document.getElementById('objectionOutputMeta').textContent = objection.slice(0, 60);
+    document.getElementById('objectionOutputCard').classList.add('visible');
+    document.getElementById('saveObjectionBtn').classList.remove('active');
+
+    await incrementQuotaUsed();
+    updateQuotaDisplay();
+
   } catch (err) {
-    container.innerHTML = '<p class="empty-state">impossible de générer les objections pour l\'instant.</p>';
+    alert('Erreur réseau, réessaie dans un instant.');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '✦ générer la réponse';
   }
+}
+
+function handleCopyObjection() {
+  const texte = document.getElementById('objectionOutputText').textContent;
+  navigator.clipboard.writeText(texte);
+
+  const btn = document.getElementById('copyObjectionBtn');
+  const original = btn.textContent;
+  btn.textContent = '✓';
+  setTimeout(() => { btn.textContent = original; }, 1200);
+}
+
+async function getSavedObjections() {
+  const { data } = await supabaseClient
+    .from('saved_objections')
+    .select('*')
+    .order('created_at', { ascending: false });
+  return data || [];
+}
+
+async function handleSaveObjection() {
+  const objection = document.getElementById('objectionInput').value.trim();
+  const reponse = document.getElementById('objectionOutputText').textContent;
+  if (!objection || !reponse) return;
+
+  await supabaseClient
+    .from('saved_objections')
+    .insert({ user_id: currentUser.id, objection, reponse });
+
+  document.getElementById('saveObjectionBtn').classList.add('active');
+  await renderSavedObjectionsList();
+}
+
+async function handleDeleteObjection(id) {
+  if (!confirm('Supprimer cette objection sauvegardée ?')) return;
+
+  await supabaseClient
+    .from('saved_objections')
+    .delete()
+    .eq('id', id);
+
+  await renderSavedObjectionsList();
+}
+
+async function renderSavedObjectionsList() {
+  const container = document.getElementById('savedObjectionsList');
+  const list = await getSavedObjections();
+
+  if (list.length === 0) {
+    container.innerHTML = '<p class="empty-state">aucune objection traitée pour l\'instant.</p>';
+    return;
+  }
+
+  container.innerHTML = list.map(o => `
+    <div class="saved-item">
+      <div class="saved-item-head">
+        <span class="name">${o.objection.slice(0, 60)}</span>
+        <div class="saved-item-actions">
+          <button class="icon-btn" onclick="handleDeleteObjection('${o.id}')" title="supprimer">🗑</button>
+        </div>
+      </div>
+      <p>${o.reponse.slice(0, 140)}${o.reponse.length > 140 ? '…' : ''}</p>
+    </div>
+  `).join('');
 }
 
 
@@ -370,7 +447,7 @@ async function startApp(profile) {
   renderProfilePill(profile);
   updateQuotaDisplay();
   await renderSavedList();
-  await renderObjections(profile);
+  await renderSavedObjectionsList();
 }
 
 
