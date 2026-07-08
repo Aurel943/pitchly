@@ -87,8 +87,11 @@ function openOnboarding() {
 
 async function handleOnboardingSubmit() {
   try {
+    const secteurValue = document.getElementById('secteurInput').value;
+    const secteurAutre = document.getElementById('secteurAutreInput').value.trim();
+
     const profile = await saveProfile({
-      secteur: document.getElementById('secteurInput').value,
+      secteur: secteurValue === 'autre' && secteurAutre ? secteurAutre : secteurValue,
       offre: document.getElementById('offreInput').value,
       panier: document.getElementById('panierInput').value || 'non précisé',
     });
@@ -121,7 +124,7 @@ function renderDashboard(profile) {
   document.getElementById('quotaDisplay').textContent = `${restant} générations restantes`;
 
   const pill = document.getElementById('profilePill');
-  pill.textContent = LABELS_SECTEUR[profile.secteur];
+  pill.textContent = LABELS_SECTEUR[profile.secteur] || profile.secteur;
 }
 
 document.addEventListener('DOMContentLoaded', () => {

@@ -4,6 +4,8 @@
    et du profil métier. La session/le profil sont gérés via auth.js.
    ================================================================ */
 
+const SECTEURS_CONNUS = ['coaching', 'artisanat', 'conseil', 'creatif', 'commerce'];
+
 async function initAccountPage() {
   const session = await getSession();
 
@@ -19,7 +21,12 @@ async function initAccountPage() {
     document.getElementById('accountNomInput').value = profile.nom || '';
     document.getElementById('accountDateNaissanceInput').value = profile.date_naissance || '';
     document.getElementById('accountTelephoneInput').value = profile.telephone || '';
-    document.getElementById('secteurInput').value = profile.secteur || 'coaching';
+    const secteurConnu = profile.secteur && SECTEURS_CONNUS.includes(profile.secteur);
+    document.getElementById('secteurInput').value = secteurConnu ? profile.secteur : (profile.secteur ? 'autre' : 'coaching');
+    if (!secteurConnu && profile.secteur) {
+      document.getElementById('secteurAutreInput').value = profile.secteur;
+    }
+    toggleSecteurAutre('secteurInput', 'secteurAutreInput');
     document.getElementById('offreInput').value = profile.offre || 'abonnement';
     document.getElementById('panierInput').value = profile.panier || '';
   }
@@ -42,8 +49,11 @@ async function handleSaveAccountInfo() {
 
 async function handleSaveBusinessProfile() {
   try {
+    const secteurValue = document.getElementById('secteurInput').value;
+    const secteurAutre = document.getElementById('secteurAutreInput').value.trim();
+
     await saveProfile({
-      secteur: document.getElementById('secteurInput').value,
+      secteur: secteurValue === 'autre' && secteurAutre ? secteurAutre : secteurValue,
       offre: document.getElementById('offreInput').value,
       panier: document.getElementById('panierInput').value || 'non précisé',
     });

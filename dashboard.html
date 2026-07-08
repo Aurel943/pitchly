@@ -110,13 +110,15 @@
 
     <div class="field">
       <label>secteur</label>
-      <select id="secteurInput">
+      <select id="secteurInput" onchange="toggleSecteurAutre('secteurInput', 'secteurAutreInput')">
         <option value="coaching">coaching et bien-être</option>
         <option value="artisanat">artisanat / BTP</option>
         <option value="conseil">conseil et services intellectuels</option>
         <option value="creatif">freelance créatif</option>
         <option value="commerce">commerce et produit physique</option>
+        <option value="autre">autre (précise)</option>
       </select>
+      <input type="text" id="secteurAutreInput" class="hidden" placeholder="ex : photographe animalier">
     </div>
 
     <div class="field-row">

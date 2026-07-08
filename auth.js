@@ -55,3 +55,10 @@ async function saveProfile(fields) {
   if (error) throw error;
   return data;
 }
+
+// Affiche/masque le champ texte libre à côté d'un <select> secteur
+// quand l'option "autre" est choisie.
+function toggleSecteurAutre(selectId, inputId) {
+  const isAutre = document.getElementById(selectId).value === 'autre';
+  document.getElementById(inputId).classList.toggle('hidden', !isAutre);
+}

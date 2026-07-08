@@ -53,7 +53,7 @@ const LABELS_SECTEUR = {
 
 function renderProfilePill(profile) {
   const pill = document.getElementById('profilePill');
-  pill.textContent = LABELS_SECTEUR[profile.secteur];
+  pill.textContent = LABELS_SECTEUR[profile.secteur] || profile.secteur;
 }
 
 
@@ -113,7 +113,7 @@ async function handleGenerate() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        secteur: LABELS_SECTEUR[currentProfile.secteur],
+        secteur: LABELS_SECTEUR[currentProfile.secteur] || currentProfile.secteur,
         offre: currentProfile.offre,
         panier: currentProfile.panier,
         canal,
@@ -315,24 +315,49 @@ function handleCopy() {
 
 /* ================================================================
    BLOC 4 — BIBLIOTHÈQUE D'OBJECTIONS
-   Liste statique pour l'instant (à terme, adaptée au secteur du
-   profil, comme le générateur).
+   Générées par Claude (/api/objections), adaptées au secteur/offre
+   du profil. Mises en cache dans sessionStorage (clé secteur+offre)
+   pour ne pas refacturer un appel à chaque navigation.
    ================================================================ */
 
-const OBJECTIONS = [
-  { q: "C'est trop cher pour moi.", r: "Je comprends. Beaucoup de mes clients pensaient ça au début — on regarde ensemble ce que ça change concrètement pour eux ?" },
-  { q: "Je dois réfléchir.", r: "Bien sûr. Qu'est-ce qui te ferait hésiter précisément — le prix, le timing, ou autre chose ?" },
-  { q: "J'ai déjà quelqu'un.", r: "Tant mieux, ça veut dire que tu connais déjà la valeur de ce type d'accompagnement. Qu'est-ce qui te ferait changer, si l'occasion se présentait ?" },
-];
+function objectionsCacheKey(profile) {
+  return `pitchly_objections_${profile.secteur}_${profile.offre}`;
+}
 
-function renderObjections() {
+async function fetchObjections(profile) {
+  const cacheKey = objectionsCacheKey(profile);
+  const cached = sessionStorage.getItem(cacheKey);
+  if (cached) return JSON.parse(cached);
+
+  const secteurLabel = LABELS_SECTEUR[profile.secteur] || profile.secteur;
+  const response = await fetch('/api/objections', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ secteur: secteurLabel, offre: profile.offre }),
+  });
+
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.error || 'impossible de générer les objections');
+
+  sessionStorage.setItem(cacheKey, JSON.stringify(data.objections));
+  return data.objections;
+}
+
+async function renderObjections(profile) {
   const container = document.getElementById('objectionsList');
-  container.innerHTML = OBJECTIONS.map((o, i) => `
-    <div class="obj-item" onclick="this.classList.toggle('open')">
-      <p class="q">« ${o.q} »</p>
-      <p class="r">${o.r}</p>
-    </div>
-  `).join('');
+  container.innerHTML = '<p class="empty-state">génération des objections en cours…</p>';
+
+  try {
+    const objections = await fetchObjections(profile);
+    container.innerHTML = objections.map(o => `
+      <div class="obj-item" onclick="this.classList.toggle('open')">
+        <p class="q">« ${o.q} »</p>
+        <p class="r">${o.r}</p>
+      </div>
+    `).join('');
+  } catch (err) {
+    container.innerHTML = '<p class="empty-state">impossible de générer les objections pour l\'instant.</p>';
+  }
 }
 
 
@@ -345,7 +370,7 @@ async function startApp(profile) {
   renderProfilePill(profile);
   updateQuotaDisplay();
   await renderSavedList();
-  renderObjections();
+  await renderObjections(profile);
 }
 
 
