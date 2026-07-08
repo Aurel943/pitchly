@@ -88,7 +88,7 @@ async function getProfile() {
 async function saveProfile(fields) {
   const { data, error } = await supabaseClient
     .from('profiles')
-    .upsert({ id: currentUser.id, ...fields })
+    .upsert({ id: currentUser.id, email: currentUser.email, ...fields })
     .select()
     .single();
   if (error) throw error;

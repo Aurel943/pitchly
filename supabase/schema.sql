@@ -9,6 +9,7 @@
 -- profil métier (secteur/offre/panier).
 create table if not exists public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
+  email text,
   nom text,
   date_naissance date,
   telephone text,
