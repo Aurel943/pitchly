@@ -491,6 +491,7 @@
 <!-- ============ MODALE CONNEXION / INSCRIPTION ============ -->
 <div class="modal-overlay hidden" id="authModal">
   <div class="modal">
+    <button class="icon-btn modal-close" onclick="closeAuthModal()" title="fermer">✕</button>
     <h2 id="authModalTitle">rejoins pitchly</h2>
     <p class="desc" id="authModalDesc">connecte-toi ou crée ton compte pour générer tes scripts.</p>
 
@@ -504,6 +505,8 @@
     </div>
     <button class="btn-primary" id="authEmailBtn" onclick="handleEmailLinkClick()"><span class="lbl">recevoir un lien de connexion</span></button>
     <p class="auth-status" id="authStatus"></p>
+
+    <p class="auth-switch"><a href="#" id="authSwitchLink" onclick="handleAuthSwitchClick(); return false;">déjà inscrit ? connecte-toi</a></p>
   </div>
 </div>
 

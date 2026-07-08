@@ -11,19 +11,39 @@
    ================================================================ */
 
 const AUTH_MODAL_TEXT = {
-  login: { title: 'content de te revoir', desc: 'connecte-toi pour retrouver ton espace.' },
-  signup: { title: 'crée ton compte', desc: 'inscris-toi pour générer tes premiers scripts.' },
+  login: {
+    title: 'content de te revoir',
+    desc: 'connecte-toi pour retrouver ton espace.',
+    switchText: 'toujours pas inscrit ? crée ton compte',
+    switchMode: 'signup',
+  },
+  signup: {
+    title: 'crée ton compte',
+    desc: 'inscris-toi pour générer tes premiers scripts.',
+    switchText: 'déjà inscrit ? connecte-toi',
+    switchMode: 'login',
+  },
 };
 
+let currentAuthMode = 'signup';
+
 function openAuthModal(mode) {
+  currentAuthMode = mode;
   const text = AUTH_MODAL_TEXT[mode] || AUTH_MODAL_TEXT.signup;
   document.getElementById('authModalTitle').textContent = text.title;
   document.getElementById('authModalDesc').textContent = text.desc;
+  document.getElementById('authSwitchLink').textContent = text.switchText;
+  document.getElementById('authStatus').textContent = '';
   document.getElementById('authModal').classList.remove('hidden');
 }
 
 function closeAuthModal() {
   document.getElementById('authModal').classList.add('hidden');
+}
+
+function handleAuthSwitchClick() {
+  const text = AUTH_MODAL_TEXT[currentAuthMode] || AUTH_MODAL_TEXT.signup;
+  openAuthModal(text.switchMode);
 }
 
 async function handleCTAClick(mode) {

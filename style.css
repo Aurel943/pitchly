@@ -207,10 +207,14 @@ textarea{resize:vertical;min-height:64px;}
 .modal-overlay{position:fixed;inset:0;background:rgba(15,29,31,.75);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;z-index:300;padding:20px;animation:overlayIn .3s ease both;}
 .modal-overlay.hidden{display:none;}
 @keyframes overlayIn{from{opacity:0;}to{opacity:1;}}
-.modal{background:var(--paper);color:var(--ink);border-radius:22px;padding:36px;max-width:430px;width:100%;animation:modalIn .45s var(--ease) both;}
+.modal{position:relative;background:var(--paper);color:var(--ink);border-radius:22px;padding:36px;max-width:430px;width:100%;animation:modalIn .45s var(--ease) both;}
 @keyframes modalIn{from{opacity:0;transform:translateY(26px) scale(.97);}to{opacity:1;transform:none;}}
-.modal h2{font-size:23px;margin-bottom:6px;color:var(--ink);}
+.modal h2{font-size:23px;margin-bottom:6px;color:var(--ink);padding-right:24px;}
 .modal p.desc{font-size:14px;color:var(--text-muted);margin-bottom:22px;}
+.modal-close{position:absolute;top:18px;right:18px;font-size:15px;}
+.auth-switch{font-size:13.5px;color:var(--text-muted);text-align:center;margin-top:18px;}
+.auth-switch a{color:var(--ink);font-weight:600;cursor:pointer;text-decoration:underline;text-underline-offset:2px;}
+.auth-switch a:hover{color:var(--gold-dim);}
 
 /* ============================================
    MODALE DÉTAIL SCRIPT
