@@ -88,7 +88,10 @@ async function handleGenerateObjection() {
     }
 
     document.getElementById('objectionOutputText').textContent = data.reponse;
-    document.getElementById('objectionOutputMeta').textContent = objection.slice(0, 60);
+    document.getElementById('objectionOutputMeta').innerHTML = objection.slice(0, 60) +
+      (exemples.length > 0
+        ? `<span class="exemples-note">✨ enrichi par ${exemples.length} exemple${exemples.length > 1 ? 's' : ''} qui ${exemples.length > 1 ? 'ont' : 'a'} déjà marché</span>`
+        : '');
     document.getElementById('objectionOutputCard').classList.add('visible');
     document.getElementById('saveObjectionBtn').classList.remove('active');
 
@@ -158,6 +161,14 @@ async function handleSetObjectionOutcome(id, value) {
     return;
   }
 
+  if (next === 'worked') {
+    showToast('👍 Noté — cette réponse sera proposée comme exemple dans tes prochaines générations.', 'worked');
+  } else if (next === 'failed') {
+    showToast('👎 Noté — elle ne sera plus utilisée comme modèle.', 'failed');
+  } else {
+    showToast('Retour retiré.', 'info');
+  }
+
   await renderSavedObjectionsList();
   if (currentObjectionId === id) {
     const updated = lastSavedObjections.find(o => o.id === id);
@@ -207,12 +218,14 @@ async function renderSavedObjectionsList() {
       <div class="saved-item-head">
         <span class="name">${o.objection.slice(0, 60)}</span>
         <div class="saved-item-actions">
-          <button class="icon-btn ${o.outcome === 'worked' ? 'active' : ''}" onclick="event.stopPropagation(); handleSetObjectionOutcome('${o.id}', 'worked')" title="a fonctionné">👍</button>
-          <button class="icon-btn ${o.outcome === 'failed' ? 'danger' : ''}" onclick="event.stopPropagation(); handleSetObjectionOutcome('${o.id}', 'failed')" title="n'a pas fonctionné">👎</button>
+          <button class="icon-btn ${o.outcome === 'worked' ? 'fb-on-worked' : ''}" onclick="event.stopPropagation(); handleSetObjectionOutcome('${o.id}', 'worked')" title="a fonctionné">👍</button>
+          <button class="icon-btn ${o.outcome === 'failed' ? 'fb-on-failed' : ''}" onclick="event.stopPropagation(); handleSetObjectionOutcome('${o.id}', 'failed')" title="n'a pas fonctionné">👎</button>
           <button class="icon-btn" onclick="event.stopPropagation(); handleDeleteObjection('${o.id}')" title="supprimer">🗑</button>
         </div>
       </div>
       <span class="tag">${formatDateTime(o.created_at)}</span>
+      ${o.outcome === 'worked' ? '<span class="outcome-tag worked">✓ a fonctionné — utilisée comme exemple</span>' : ''}
+      ${o.outcome === 'failed' ? '<span class="outcome-tag failed">✕ n\'a pas fonctionné</span>' : ''}
       <p>${o.reponse.slice(0, 140)}${o.reponse.length > 140 ? '…' : ''}</p>
     </div>
   `).join('');
@@ -234,8 +247,8 @@ document.getElementById('savedObjectionsSortSelect').addEventListener('change', 
    ================================================================ */
 
 function renderObjectionOutcomeButtons(o) {
-  document.getElementById('objectionModalWorkedBtn').classList.toggle('active', o.outcome === 'worked');
-  document.getElementById('objectionModalFailedBtn').classList.toggle('danger', o.outcome === 'failed');
+  document.getElementById('objectionModalWorkedBtn').classList.toggle('fb-on-worked', o.outcome === 'worked');
+  document.getElementById('objectionModalFailedBtn').classList.toggle('fb-on-failed', o.outcome === 'failed');
 }
 
 function openObjectionDetail(id) {

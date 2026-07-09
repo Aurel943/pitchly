@@ -128,7 +128,10 @@ async function handleGenerate() {
 
     // Affichage du résultat
     document.getElementById('outputText').textContent = data.texte;
-    document.getElementById('outputMeta').textContent = `${situation.replace('_', ' ')} · ${canal}`;
+    document.getElementById('outputMeta').innerHTML = `${situation.replace('_', ' ')} · ${canal}` +
+      (exemples.length > 0
+        ? `<span class="exemples-note">✨ enrichi par ${exemples.length} exemple${exemples.length > 1 ? 's' : ''} qui ${exemples.length > 1 ? 'ont' : 'a'} déjà marché</span>`
+        : '');
     document.getElementById('outputCard').classList.add('visible');
     document.getElementById('saveBtn').classList.remove('active'); // reset l'état favori
 
@@ -216,12 +219,14 @@ async function renderSavedList() {
       <div class="saved-item-head">
         <span class="name">${s.nom || `${s.situation.replace('_', ' ')} · ${s.canal}`}</span>
         <div class="saved-item-actions">
-          <button class="icon-btn ${s.outcome === 'worked' ? 'active' : ''}" onclick="event.stopPropagation(); handleSetScriptOutcome('${s.id}', 'worked')" title="a fonctionné">👍</button>
-          <button class="icon-btn ${s.outcome === 'failed' ? 'danger' : ''}" onclick="event.stopPropagation(); handleSetScriptOutcome('${s.id}', 'failed')" title="n'a pas fonctionné">👎</button>
+          <button class="icon-btn ${s.outcome === 'worked' ? 'fb-on-worked' : ''}" onclick="event.stopPropagation(); handleSetScriptOutcome('${s.id}', 'worked')" title="a fonctionné">👍</button>
+          <button class="icon-btn ${s.outcome === 'failed' ? 'fb-on-failed' : ''}" onclick="event.stopPropagation(); handleSetScriptOutcome('${s.id}', 'failed')" title="n'a pas fonctionné">👎</button>
           <button class="icon-btn" onclick="event.stopPropagation(); handleDeleteScript('${s.id}')" title="supprimer">🗑</button>
         </div>
       </div>
       <span class="tag">${s.situation.replace('_', ' ')} · ${s.canal} · ${formatDateTime(s.created_at)}</span>
+      ${s.outcome === 'worked' ? '<span class="outcome-tag worked">✓ a fonctionné — utilisé comme exemple</span>' : ''}
+      ${s.outcome === 'failed' ? '<span class="outcome-tag failed">✕ n\'a pas fonctionné</span>' : ''}
       <p>${s.texte.slice(0, 90)}${s.texte.length > 90 ? '…' : ''}</p>
     </div>
   `).join('');
@@ -251,8 +256,8 @@ document.getElementById('savedSortSelect').addEventListener('change', (e) => {
    ================================================================ */
 
 function renderScriptOutcomeButtons(script) {
-  document.getElementById('scriptModalWorkedBtn').classList.toggle('active', script.outcome === 'worked');
-  document.getElementById('scriptModalFailedBtn').classList.toggle('danger', script.outcome === 'failed');
+  document.getElementById('scriptModalWorkedBtn').classList.toggle('fb-on-worked', script.outcome === 'worked');
+  document.getElementById('scriptModalFailedBtn').classList.toggle('fb-on-failed', script.outcome === 'failed');
 }
 
 function openScriptDetail(id) {
@@ -296,6 +301,14 @@ async function handleSetScriptOutcome(id, value) {
   if (error) {
     alert('Erreur lors de la mise à jour : ' + error.message);
     return;
+  }
+
+  if (next === 'worked') {
+    showToast('👍 Noté — ce script sera proposé comme exemple dans tes prochaines générations.', 'worked');
+  } else if (next === 'failed') {
+    showToast('👎 Noté — il ne sera plus utilisé comme modèle.', 'failed');
+  } else {
+    showToast('Retour retiré.', 'info');
   }
 
   await renderSavedList();

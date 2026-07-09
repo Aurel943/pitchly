@@ -101,3 +101,20 @@ function toggleSecteurAutre(selectId, inputId) {
   const isAutre = document.getElementById(selectId).value === 'autre';
   document.getElementById(inputId).classList.toggle('hidden', !isAutre);
 }
+
+// Petit toast en bas d'écran — confirme visiblement une action qui n'a
+// sinon aucun effet visuel immédiat (ex : marquer un feedback "a marché").
+let toastTimeout = null;
+function showToast(message, type = 'info') {
+  let toast = document.getElementById('toast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'toast';
+    document.body.appendChild(toast);
+  }
+  toast.textContent = message;
+  toast.className = `toast ${type}`;
+  requestAnimationFrame(() => toast.classList.add('visible'));
+  clearTimeout(toastTimeout);
+  toastTimeout = setTimeout(() => toast.classList.remove('visible'), 2800);
+}

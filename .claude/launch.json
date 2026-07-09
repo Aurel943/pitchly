@@ -7,6 +7,13 @@
       "runtimeArgs": ["vercel", "dev", "--yes", "--listen", "3002"],
       "port": 3002,
       "autoPort": false
+    },
+    {
+      "name": "static-preview",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["serve", "-l", "3005", "."],
+      "port": 3005,
+      "autoPort": false
     }
   ]
 }
