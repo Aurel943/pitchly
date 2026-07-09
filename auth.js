@@ -102,6 +102,33 @@ function toggleSecteurAutre(selectId, inputId) {
   document.getElementById(inputId).classList.toggle('hidden', !isAutre);
 }
 
+// Récupère et fusionne les scripts + objections sauvegardés d'un coup,
+// triés par date décroissante. Partagé par les widgets du dashboard
+// (activité récente, progression) qui ont tous besoin de croiser les
+// deux tables de la même façon.
+async function getCombinedSaved({ filterRatedOnly = false, limit = null } = {}) {
+  let scriptsQuery = supabaseClient.from('saved_scripts').select('texte, outcome, created_at').order('created_at', { ascending: false });
+  let objectionsQuery = supabaseClient.from('saved_objections').select('reponse, outcome, created_at').order('created_at', { ascending: false });
+
+  if (filterRatedOnly) {
+    scriptsQuery = scriptsQuery.not('outcome', 'is', null);
+    objectionsQuery = objectionsQuery.not('outcome', 'is', null);
+  }
+  if (limit) {
+    scriptsQuery = scriptsQuery.limit(limit);
+    objectionsQuery = objectionsQuery.limit(limit);
+  }
+
+  const [{ data: scripts }, { data: objections }] = await Promise.all([scriptsQuery, objectionsQuery]);
+
+  const merged = [
+    ...(scripts || []).map(s => ({ type: 'script', text: s.texte, outcome: s.outcome, created_at: s.created_at })),
+    ...(objections || []).map(o => ({ type: 'objection', text: o.reponse, outcome: o.outcome, created_at: o.created_at })),
+  ];
+
+  return merged.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+}
+
 // Petit toast en bas d'écran — confirme visiblement une action qui n'a
 // sinon aucun effet visuel immédiat (ex : marquer un feedback "a marché").
 let toastTimeout = null;

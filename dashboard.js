@@ -148,18 +148,8 @@ function renderDashboardStats(stats) {
 }
 
 async function getRecentActivity() {
-  const [{ data: scripts }, { data: objections }] = await Promise.all([
-    supabaseClient.from('saved_scripts').select('id, texte, outcome, created_at').order('created_at', { ascending: false }).limit(4),
-    supabaseClient.from('saved_objections').select('id, reponse, outcome, created_at').order('created_at', { ascending: false }).limit(4),
-  ]);
-
-  const merged = [
-    ...(scripts || []).map(s => ({ type: 'script', text: s.texte, outcome: s.outcome, created_at: s.created_at })),
-    ...(objections || []).map(o => ({ type: 'objection', text: o.reponse, outcome: o.outcome, created_at: o.created_at })),
-  ];
-
-  merged.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-  return merged.slice(0, 4);
+  const items = await getCombinedSaved({ limit: 4 });
+  return items.slice(0, 4);
 }
 
 function renderRecentActivity(items) {
@@ -202,12 +192,7 @@ function monthLabel(key) {
 }
 
 async function getProgressData() {
-  const [{ data: scripts }, { data: objections }] = await Promise.all([
-    supabaseClient.from('saved_scripts').select('outcome, created_at').not('outcome', 'is', null),
-    supabaseClient.from('saved_objections').select('outcome, created_at').not('outcome', 'is', null),
-  ]);
-
-  const rated = [...(scripts || []), ...(objections || [])];
+  const rated = await getCombinedSaved({ filterRatedOnly: true });
   if (rated.length === 0) return null;
 
   const byMonth = {};
