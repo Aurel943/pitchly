@@ -263,6 +263,18 @@ textarea{resize:vertical;min-height:64px;}
 .shortcut-card p{font-size:13px;color:var(--text-muted);}
 @media(max-width:720px){.shortcut-grid{grid-template-columns:1fr;}}
 
+.dashboard-stats{font-family:'IBM Plex Mono',monospace;font-size:12.5px;color:var(--text-muted);}
+
+.dashboard-links{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;}
+.dashboard-link{
+  font-family:'IBM Plex Mono',monospace;font-size:12.5px;color:var(--text-muted);
+  border:1px solid rgba(22,41,44,0.14);padding:8px 16px;border-radius:100px;
+  transition:all .25s var(--ease);
+}
+.dashboard-link:hover{border-color:var(--gold);color:var(--ink);transform:translateY(-2px);}
+
+.recent-type{font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--moss);display:block;margin-bottom:2px;}
+
 /* ============================================
    MODALES
    ============================================ */

@@ -34,49 +34,32 @@
         <span id="welcomeMessage">bienvenue</span>
         <span class="quota" id="quotaDisplay">— générations restantes</span>
       </div>
+      <p class="dashboard-stats hidden" id="dashboardStats"></p>
     </div>
 
     <div class="dashboard-section">
-      <span class="section-label">scripts de prospection</span>
+      <span class="section-label">passer à l'action</span>
       <div class="shortcut-grid">
         <a class="shortcut-card" href="app.html">
-          <span class="icon">✦</span>
+          <span class="icon">✎</span>
           <h3>générer un script</h3>
           <p>appel, email ou LinkedIn, prêt en quelques secondes.</p>
         </a>
-        <a class="shortcut-card" href="app.html#saved">
-          <span class="icon">★</span>
-          <h3>mes scripts</h3>
-          <p>retrouve, renomme et réutilise tes scripts sauvegardés.</p>
-        </a>
-      </div>
-    </div>
-
-    <div class="dashboard-section">
-      <span class="section-label">objections</span>
-      <div class="shortcut-grid">
         <a class="shortcut-card" href="objections.html">
-          <span class="icon">✦</span>
+          <span class="icon">❖</span>
           <h3>répondre à une objection</h3>
           <p>saisis l'objection reçue, obtiens une réponse adaptée.</p>
         </a>
-        <a class="shortcut-card" href="objections.html#saved">
-          <span class="icon">★</span>
-          <h3>mes objections traitées</h3>
-          <p>retrouve les objections déjà travaillées.</p>
-        </a>
+      </div>
+      <div class="dashboard-links">
+        <a class="dashboard-link" href="app.html#saved">★ mes scripts sauvegardés</a>
+        <a class="dashboard-link" href="objections.html#saved">★ mes objections traitées</a>
       </div>
     </div>
 
-    <div class="dashboard-section">
-      <span class="section-label">compte</span>
-      <div class="shortcut-grid">
-        <a class="shortcut-card" href="compte.html">
-          <span class="icon">⚙</span>
-          <h3>mon compte</h3>
-          <p>infos personnelles et profil métier.</p>
-        </a>
-      </div>
+    <div class="dashboard-section hidden" id="recentActivitySection">
+      <span class="section-label">activité récente</span>
+      <div id="recentActivityList"></div>
     </div>
 
   </div>
