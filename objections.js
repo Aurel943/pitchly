@@ -50,7 +50,35 @@ async function getWorkedObjectionExamples() {
     .eq('outcome', 'worked')
     .order('created_at', { ascending: false })
     .limit(2);
-  return data || [];
+
+  const personal = (data || []).map(o => ({ ...o, source: 'personal' }));
+  if (personal.length >= 2) return personal;
+
+  // Complète avec la bibliothèque du secteur tant que l'utilisateur n'a
+  // pas encore assez de réponses personnelles marquées "a marché".
+  const library = (STARTER_OBJECTIONS[currentProfile.secteur] || [])
+    .slice(0, 2 - personal.length)
+    .map(o => ({ ...o, source: 'library' }));
+
+  return [...personal, ...library];
+}
+
+function buildExemplesNote(exemples, secteurLabel) {
+  if (exemples.length === 0) return '';
+
+  const personalCount = exemples.filter(e => e.source === 'personal').length;
+  const libraryCount = exemples.filter(e => e.source === 'library').length;
+
+  let text;
+  if (libraryCount === 0) {
+    text = `✨ enrichi par ${personalCount} exemple${personalCount > 1 ? 's' : ''} qui ${personalCount > 1 ? 'ont' : 'a'} déjà marché`;
+  } else if (personalCount === 0) {
+    text = `✨ enrichi par ${libraryCount} exemple${libraryCount > 1 ? 's' : ''} de la bibliothèque ${secteurLabel}`;
+  } else {
+    text = `✨ enrichi par ${personalCount} exemple${personalCount > 1 ? 's' : ''} qui ${personalCount > 1 ? 'ont' : 'a'} déjà marché + ${libraryCount} de la bibliothèque ${secteurLabel}`;
+  }
+
+  return `<span class="exemples-note">${text}</span>`;
 }
 
 async function handleGenerateObjection() {
@@ -89,9 +117,7 @@ async function handleGenerateObjection() {
 
     document.getElementById('objectionOutputText').textContent = data.reponse;
     document.getElementById('objectionOutputMeta').innerHTML = objection.slice(0, 60) +
-      (exemples.length > 0
-        ? `<span class="exemples-note">✨ enrichi par ${exemples.length} exemple${exemples.length > 1 ? 's' : ''} qui ${exemples.length > 1 ? 'ont' : 'a'} déjà marché</span>`
-        : '');
+      buildExemplesNote(exemples, LABELS_SECTEUR[currentProfile.secteur] || currentProfile.secteur);
     document.getElementById('objectionOutputCard').classList.add('visible');
     document.getElementById('saveObjectionBtn').classList.remove('active');
 

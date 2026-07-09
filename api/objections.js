@@ -16,7 +16,7 @@ export default async function handler(req, res) {
   const { secteur, offre, objection, exemples } = req.body;
 
   const blocExemples = Array.isArray(exemples) && exemples.length > 0
-    ? `\n\nVoici des exemples de réponses qui ont déjà bien fonctionné auprès de ce client. Inspire-toi de leur ton et de leur structure, sans les recopier mot pour mot :\n` +
+    ? `\n\nVoici des exemples de réponses efficaces pour ce type de situation. Inspire-toi de leur ton et de leur structure, sans les recopier mot pour mot :\n` +
       exemples.map(e => `- objection : "${e.objection}" → réponse : "${e.reponse}"`).join('\n')
     : '';
 
