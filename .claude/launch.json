@@ -4,8 +4,9 @@
     {
       "name": "vercel-dev",
       "runtimeExecutable": "npx",
-      "runtimeArgs": ["vercel", "dev", "--yes"],
-      "port": 3000
+      "runtimeArgs": ["vercel", "dev", "--yes", "--listen", "3002"],
+      "port": 3002,
+      "autoPort": false
     }
   ]
 }

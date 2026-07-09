@@ -40,6 +40,7 @@ create table if not exists public.saved_scripts (
   canal text not null,
   situation text not null,
   texte text not null,
+  outcome text, -- 'worked' | 'failed' | null — retour terrain de l'utilisateur
   created_at timestamptz not null default now()
 );
 
@@ -63,6 +64,7 @@ create table if not exists public.saved_objections (
   user_id uuid not null references auth.users(id) on delete cascade,
   objection text not null,
   reponse text not null,
+  outcome text, -- 'worked' | 'failed' | null — retour terrain de l'utilisateur
   created_at timestamptz not null default now()
 );
 
@@ -74,5 +76,19 @@ create policy "saved_objections: select own" on public.saved_objections
 create policy "saved_objections: insert own" on public.saved_objections
   for insert with check (auth.uid() = user_id);
 
+create policy "saved_objections: update own" on public.saved_objections
+  for update using (auth.uid() = user_id);
+
 create policy "saved_objections: delete own" on public.saved_objections
   for delete using (auth.uid() = user_id);
+
+-- ================================================================
+-- MIGRATION — à coller/exécuter si les tables ci-dessus existent déjà
+-- dans ton projet Supabase (idempotent, sans risque à ré-exécuter).
+-- ================================================================
+alter table public.saved_scripts add column if not exists outcome text;
+alter table public.saved_objections add column if not exists outcome text;
+
+drop policy if exists "saved_objections: update own" on public.saved_objections;
+create policy "saved_objections: update own" on public.saved_objections
+  for update using (auth.uid() = user_id);

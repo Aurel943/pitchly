@@ -89,6 +89,8 @@
     <p class="script-modal-text" id="objectionModalText"></p>
     <div class="modal-actions">
       <button class="icon-btn" onclick="handleCopyObjectionModal()" title="copier">⧉ copier</button>
+      <button class="icon-btn" id="objectionModalWorkedBtn" onclick="handleSetObjectionOutcome(currentObjectionId, 'worked')" title="a fonctionné">👍 a fonctionné</button>
+      <button class="icon-btn" id="objectionModalFailedBtn" onclick="handleSetObjectionOutcome(currentObjectionId, 'failed')" title="n'a pas fonctionné">👎 n'a pas fonctionné</button>
       <button class="icon-btn danger" onclick="handleDeleteObjection(currentObjectionId)" title="supprimer">🗑 supprimer</button>
     </div>
   </div>

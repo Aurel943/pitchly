@@ -124,6 +124,8 @@
     <div class="modal-actions">
       <button class="icon-btn" onclick="handleCopyScriptModal()" title="copier">⧉ copier</button>
       <button class="icon-btn" onclick="handleRenameScriptSubmit()" title="enregistrer le nom">✓ enregistrer le nom</button>
+      <button class="icon-btn" id="scriptModalWorkedBtn" onclick="handleSetScriptOutcome(currentScriptId, 'worked')" title="a fonctionné">👍 a fonctionné</button>
+      <button class="icon-btn" id="scriptModalFailedBtn" onclick="handleSetScriptOutcome(currentScriptId, 'failed')" title="n'a pas fonctionné">👎 n'a pas fonctionné</button>
       <button class="icon-btn danger" onclick="handleDeleteScript(currentScriptId)" title="supprimer">🗑 supprimer</button>
     </div>
   </div>

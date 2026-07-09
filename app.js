@@ -71,6 +71,21 @@ function updateQuotaDisplay() {
   document.getElementById('quotaDisplay').textContent = `${restant} générations restantes`;
 }
 
+async function getWorkedScriptExamples(canal) {
+  const { data } = await supabaseClient
+    .from('saved_scripts')
+    .select('canal, situation, texte')
+    .eq('outcome', 'worked')
+    .order('created_at', { ascending: false })
+    .limit(10);
+
+  const list = data || [];
+  // on privilégie les exemples du même canal, complétés par les plus récents sinon
+  const sameCanal = list.filter(s => s.canal === canal);
+  const rest = list.filter(s => s.canal !== canal);
+  return [...sameCanal, ...rest].slice(0, 2);
+}
+
 async function handleGenerate() {
   if (getQuotaUsed(currentProfile) >= QUOTA_GRATUIT) {
     alert('Quota gratuit atteint pour ce mois-ci. (ici on brancherait la modale "passer pro")');
@@ -87,6 +102,8 @@ async function handleGenerate() {
   btn.textContent = 'génération en cours…';
 
   try {
+    const exemples = await getWorkedScriptExamples(canal);
+
     const response = await fetch('/api/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -98,6 +115,7 @@ async function handleGenerate() {
         situation,
         ton: currentTone,
         contexte,
+        exemples,
       }),
     });
 
@@ -198,6 +216,8 @@ async function renderSavedList() {
       <div class="saved-item-head">
         <span class="name">${s.nom || `${s.situation.replace('_', ' ')} · ${s.canal}`}</span>
         <div class="saved-item-actions">
+          <button class="icon-btn ${s.outcome === 'worked' ? 'active' : ''}" onclick="event.stopPropagation(); handleSetScriptOutcome('${s.id}', 'worked')" title="a fonctionné">👍</button>
+          <button class="icon-btn ${s.outcome === 'failed' ? 'danger' : ''}" onclick="event.stopPropagation(); handleSetScriptOutcome('${s.id}', 'failed')" title="n'a pas fonctionné">👎</button>
           <button class="icon-btn" onclick="event.stopPropagation(); handleDeleteScript('${s.id}')" title="supprimer">🗑</button>
         </div>
       </div>
@@ -230,6 +250,11 @@ document.getElementById('savedSortSelect').addEventListener('change', (e) => {
    MODALE DÉTAIL D'UN SCRIPT SAUVEGARDÉ
    ================================================================ */
 
+function renderScriptOutcomeButtons(script) {
+  document.getElementById('scriptModalWorkedBtn').classList.toggle('active', script.outcome === 'worked');
+  document.getElementById('scriptModalFailedBtn').classList.toggle('danger', script.outcome === 'failed');
+}
+
 function openScriptDetail(id) {
   const script = lastSavedScripts.find(s => s.id === id);
   if (!script) return;
@@ -238,6 +263,7 @@ function openScriptDetail(id) {
   document.getElementById('scriptModalName').value = script.nom || '';
   document.getElementById('scriptModalMeta').textContent = `${script.situation.replace('_', ' ')} · ${script.canal} · ${formatDateTime(script.created_at)}`;
   document.getElementById('scriptModalText').textContent = script.texte;
+  renderScriptOutcomeButtons(script);
   document.getElementById('scriptModal').classList.remove('hidden');
 }
 
@@ -256,6 +282,27 @@ async function handleRenameScriptSubmit() {
     .eq('id', currentScriptId);
 
   await renderSavedList();
+}
+
+async function handleSetScriptOutcome(id, value) {
+  const current = lastSavedScripts.find(s => s.id === id);
+  const next = current && current.outcome === value ? null : value;
+
+  const { error } = await supabaseClient
+    .from('saved_scripts')
+    .update({ outcome: next })
+    .eq('id', id);
+
+  if (error) {
+    alert('Erreur lors de la mise à jour : ' + error.message);
+    return;
+  }
+
+  await renderSavedList();
+  if (currentScriptId === id) {
+    const updated = lastSavedScripts.find(s => s.id === id);
+    if (updated) renderScriptOutcomeButtons(updated);
+  }
 }
 
 async function handleDeleteScript(id) {

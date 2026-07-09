@@ -13,12 +13,17 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Méthode non autorisée' });
   }
 
-  const { secteur, offre, objection } = req.body;
+  const { secteur, offre, objection, exemples } = req.body;
+
+  const blocExemples = Array.isArray(exemples) && exemples.length > 0
+    ? `\n\nVoici des exemples de réponses qui ont déjà bien fonctionné auprès de ce client. Inspire-toi de leur ton et de leur structure, sans les recopier mot pour mot :\n` +
+      exemples.map(e => `- objection : "${e.objection}" → réponse : "${e.reponse}"`).join('\n')
+    : '';
 
   const prompt = `Tu es un expert en vente pour les indépendants du secteur ${secteur}.
 Ton client vend une offre de type "${offre}".
 Un prospect lui oppose l'objection suivante : "${objection}"
-Génère une réponse courte et efficace à donner à l'oral pour lever cette objection.
+Génère une réponse courte et efficace à donner à l'oral pour lever cette objection.${blocExemples}
 Réponds uniquement avec le texte de la réponse, sans introduction ni explication autour.`;
 
   try {

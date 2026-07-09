@@ -43,6 +43,16 @@ function updateQuotaDisplay() {
   document.getElementById('quotaDisplay').textContent = `${restant} générations restantes`;
 }
 
+async function getWorkedObjectionExamples() {
+  const { data } = await supabaseClient
+    .from('saved_objections')
+    .select('objection, reponse')
+    .eq('outcome', 'worked')
+    .order('created_at', { ascending: false })
+    .limit(2);
+  return data || [];
+}
+
 async function handleGenerateObjection() {
   if (getQuotaUsed(currentProfile) >= QUOTA_GRATUIT) {
     alert('Quota gratuit atteint pour ce mois-ci. (ici on brancherait la modale "passer pro")');
@@ -57,6 +67,8 @@ async function handleGenerateObjection() {
   btn.textContent = 'génération en cours…';
 
   try {
+    const exemples = await getWorkedObjectionExamples();
+
     const response = await fetch('/api/objections', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -64,6 +76,7 @@ async function handleGenerateObjection() {
         secteur: LABELS_SECTEUR[currentProfile.secteur] || currentProfile.secteur,
         offre: currentProfile.offre,
         objection,
+        exemples,
       }),
     });
 
@@ -131,6 +144,27 @@ async function handleSaveObjection() {
   await renderSavedObjectionsList();
 }
 
+async function handleSetObjectionOutcome(id, value) {
+  const current = lastSavedObjections.find(o => o.id === id);
+  const next = current && current.outcome === value ? null : value;
+
+  const { error } = await supabaseClient
+    .from('saved_objections')
+    .update({ outcome: next })
+    .eq('id', id);
+
+  if (error) {
+    alert('Erreur lors de la mise à jour : ' + error.message);
+    return;
+  }
+
+  await renderSavedObjectionsList();
+  if (currentObjectionId === id) {
+    const updated = lastSavedObjections.find(o => o.id === id);
+    if (updated) renderObjectionOutcomeButtons(updated);
+  }
+}
+
 async function handleDeleteObjection(id) {
   if (!confirm('Supprimer cette objection sauvegardée ?')) return;
 
@@ -173,6 +207,8 @@ async function renderSavedObjectionsList() {
       <div class="saved-item-head">
         <span class="name">${o.objection.slice(0, 60)}</span>
         <div class="saved-item-actions">
+          <button class="icon-btn ${o.outcome === 'worked' ? 'active' : ''}" onclick="event.stopPropagation(); handleSetObjectionOutcome('${o.id}', 'worked')" title="a fonctionné">👍</button>
+          <button class="icon-btn ${o.outcome === 'failed' ? 'danger' : ''}" onclick="event.stopPropagation(); handleSetObjectionOutcome('${o.id}', 'failed')" title="n'a pas fonctionné">👎</button>
           <button class="icon-btn" onclick="event.stopPropagation(); handleDeleteObjection('${o.id}')" title="supprimer">🗑</button>
         </div>
       </div>
@@ -197,6 +233,11 @@ document.getElementById('savedObjectionsSortSelect').addEventListener('change', 
    MODALE DÉTAIL D'UNE OBJECTION SAUVEGARDÉE
    ================================================================ */
 
+function renderObjectionOutcomeButtons(o) {
+  document.getElementById('objectionModalWorkedBtn').classList.toggle('active', o.outcome === 'worked');
+  document.getElementById('objectionModalFailedBtn').classList.toggle('danger', o.outcome === 'failed');
+}
+
 function openObjectionDetail(id) {
   const o = lastSavedObjections.find(x => x.id === id);
   if (!o) return;
@@ -205,6 +246,7 @@ function openObjectionDetail(id) {
   document.getElementById('objectionModalQuestion').textContent = o.objection;
   document.getElementById('objectionModalMeta').textContent = formatDateTime(o.created_at);
   document.getElementById('objectionModalText').textContent = o.reponse;
+  renderObjectionOutcomeButtons(o);
   document.getElementById('objectionModal').classList.remove('hidden');
 }
 
