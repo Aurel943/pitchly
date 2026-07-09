@@ -222,6 +222,18 @@ textarea{resize:vertical;min-height:64px;}
 .outcome-tag.worked{background:rgba(214,163,67,.16);color:var(--gold-dim);}
 .outcome-tag.failed{background:rgba(181,87,62,.14);color:var(--rust);}
 
+/* ============================================
+   FICHES PROSPECTS — badges de statut + select inline
+   ============================================ */
+.statut-tag{font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.03em;padding:3px 9px;border-radius:100px;margin-left:8px;text-transform:none;}
+.statut-tag.nouveau{background:rgba(91,110,112,.14);color:var(--text-muted);}
+.statut-tag.contacte{background:rgba(214,163,67,.14);color:var(--gold-dim);}
+.statut-tag.en_discussion{background:rgba(214,163,67,.24);color:var(--ink);}
+.statut-tag.gagne{background:rgba(79,109,92,.18);color:var(--moss);}
+.statut-tag.perdu{background:rgba(181,87,62,.14);color:var(--rust);}
+
+.statut-select-inline{font-family:'IBM Plex Mono',monospace;font-size:10.5px;padding:3px 8px;border-radius:100px;border:1px solid rgba(22,41,44,0.18);background:var(--paper);color:var(--text-muted);cursor:pointer;width:auto;}
+
 .exemples-note{display:block;font-size:11.5px;color:var(--gold-dim);margin-top:4px;font-family:'IBM Plex Mono',monospace;}
 
 .toast{

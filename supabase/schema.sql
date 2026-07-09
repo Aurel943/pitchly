@@ -92,3 +92,46 @@ alter table public.saved_objections add column if not exists outcome text;
 drop policy if exists "saved_objections: update own" on public.saved_objections;
 create policy "saved_objections: update own" on public.saved_objections
   for update using (auth.uid() = user_id);
+
+-- PROSPECTS — mini-CRM : une ligne par prospect suivi par l'utilisateur.
+-- Le contexte (secteur, statut, notes) s'accumule ici ; les scripts et
+-- réponses aux objections générés pour ce prospect s'y rattachent via
+-- prospect_id (voir plus bas), formant son historique d'échanges.
+create table if not exists public.prospects (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  nom text not null,
+  entreprise text,
+  secteur text,
+  statut text not null default 'nouveau', -- 'nouveau' | 'contacte' | 'en_discussion' | 'gagne' | 'perdu'
+  notes text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+alter table public.prospects enable row level security;
+
+drop policy if exists "prospects: select own" on public.prospects;
+create policy "prospects: select own" on public.prospects
+  for select using (auth.uid() = user_id);
+drop policy if exists "prospects: insert own" on public.prospects;
+create policy "prospects: insert own" on public.prospects
+  for insert with check (auth.uid() = user_id);
+drop policy if exists "prospects: update own" on public.prospects;
+create policy "prospects: update own" on public.prospects
+  for update using (auth.uid() = user_id);
+drop policy if exists "prospects: delete own" on public.prospects;
+create policy "prospects: delete own" on public.prospects
+  for delete using (auth.uid() = user_id);
+
+create index if not exists prospects_user_id_idx on public.prospects(user_id);
+
+-- Rattache scripts / réponses aux objections à un prospect (nullable :
+-- toute génération sans prospect sélectionné reste possible comme avant).
+-- ON DELETE SET NULL : supprimer un prospect ne supprime pas son historique,
+-- il redevient juste "non rattaché".
+alter table public.saved_scripts add column if not exists prospect_id uuid references public.prospects(id) on delete set null;
+alter table public.saved_objections add column if not exists prospect_id uuid references public.prospects(id) on delete set null;
+
+create index if not exists saved_scripts_prospect_id_idx on public.saved_scripts(prospect_id);
+create index if not exists saved_objections_prospect_id_idx on public.saved_objections(prospect_id);

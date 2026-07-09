@@ -22,6 +22,7 @@
       <div class="profile-pill" id="profilePill">
         chargement du profil…
       </div>
+      <a class="icon-btn" href="prospects.html" title="mes prospects">🗂</a>
       <a class="icon-btn" href="dashboard.html" title="dashboard">←</a>
       <a class="icon-btn" href="compte.html" title="mon compte">⚙</a>
       <button class="icon-btn hidden" id="logoutBtn" onclick="handleLogout()" title="déconnexion">⏻</button>
@@ -37,6 +38,13 @@
       <div class="card-label">
         <span>répondre à une objection</span>
         <span class="quota" id="quotaDisplay">— générations restantes</span>
+      </div>
+
+      <div class="field">
+        <label>prospect (optionnel)</label>
+        <select id="prospectSelect">
+          <option value="">— aucun prospect —</option>
+        </select>
       </div>
 
       <div class="field">

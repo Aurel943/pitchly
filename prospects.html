@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pitchly — Prospects</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,400;0,600;1,500;1,600&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="auth.js"></script>
+
+<nav>
+  <div class="wrap">
+    <a class="logo" href="index.html"><span class="dot"></span>pitchly</a>
+    <div class="nav-right">
+      <!-- affiché dynamiquement par prospects.js selon le profil enregistré -->
+      <div class="profile-pill" id="profilePill">
+        chargement du profil…
+      </div>
+      <a class="icon-btn" href="dashboard.html" title="dashboard">←</a>
+      <a class="icon-btn" href="compte.html" title="mon compte">⚙</a>
+      <button class="icon-btn hidden" id="logoutBtn" onclick="handleLogout()" title="déconnexion">⏻</button>
+    </div>
+  </div>
+</nav>
+
+<main id="mainProspects" class="hidden">
+  <div class="wrap">
+
+    <!-- ============ AJOUTER UN PROSPECT ============ -->
+    <div class="card">
+      <div class="card-label">
+        <span>ajouter un prospect</span>
+      </div>
+
+      <div class="field">
+        <label>nom</label>
+        <input type="text" id="prospectNomInput" placeholder="ex : Julie Marchand">
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label>entreprise (optionnel)</label>
+          <input type="text" id="prospectEntrepriseInput" placeholder="ex : Atelier Marchand">
+        </div>
+        <div class="field">
+          <label>statut</label>
+          <select id="prospectStatutInput">
+            <option value="nouveau">nouveau</option>
+            <option value="contacte">contacté</option>
+            <option value="en_discussion">en discussion</option>
+            <option value="gagne">gagné</option>
+            <option value="perdu">perdu</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>secteur</label>
+        <select id="prospectSecteurInput" onchange="toggleSecteurAutre('prospectSecteurInput', 'prospectSecteurAutreInput')">
+          <option value="coaching">coaching et bien-être</option>
+          <option value="artisanat">artisanat / BTP</option>
+          <option value="conseil">conseil et services intellectuels</option>
+          <option value="creatif">freelance créatif</option>
+          <option value="commerce">commerce et produit physique</option>
+          <option value="autre">autre (précise)</option>
+        </select>
+        <input type="text" id="prospectSecteurAutreInput" class="hidden" placeholder="ex : photographe animalier">
+      </div>
+
+      <div class="field">
+        <label>notes / contexte</label>
+        <textarea id="prospectNotesInput" placeholder="ex : rencontré au salon Business Show, cherche à automatiser sa prospection"></textarea>
+      </div>
+
+      <button class="btn-primary" id="createProspectBtn" onclick="handleCreateProspect()">
+        + ajouter le prospect
+      </button>
+    </div>
+
+    <!-- ============ MES PROSPECTS ============ -->
+    <div class="card" id="saved">
+      <div class="card-label"><span>mes prospects</span></div>
+      <div class="saved-toolbar">
+        <input type="text" id="prospectsSearchInput" placeholder="rechercher un prospect…">
+        <select id="prospectsSortSelect">
+          <option value="recent">plus récents</option>
+          <option value="oldest">plus anciens</option>
+        </select>
+      </div>
+      <div class="filters" id="prospectsFilters">
+        <span class="filter active" data-filter="tous">tous</span>
+        <span class="filter" data-filter="nouveau">nouveau</span>
+        <span class="filter" data-filter="contacte">contacté</span>
+        <span class="filter" data-filter="en_discussion">en discussion</span>
+        <span class="filter" data-filter="gagne">gagné</span>
+        <span class="filter" data-filter="perdu">perdu</span>
+      </div>
+      <div id="prospectsList">
+        <!-- rempli dynamiquement par prospects.js -->
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<!-- ============ MODALE DÉTAIL PROSPECT ============ -->
+<div class="modal-overlay hidden" id="prospectModal">
+  <div class="modal modal-wide">
+    <div class="modal-head">
+      <input type="text" class="script-name-input" id="prospectModalNom" placeholder="nom du prospect">
+      <button class="icon-btn" onclick="closeProspectModal()" title="fermer">✕</button>
+    </div>
+
+    <div class="field-row">
+      <div class="field">
+        <label>entreprise</label>
+        <input type="text" id="prospectModalEntreprise" placeholder="entreprise">
+      </div>
+      <div class="field">
+        <label>statut</label>
+        <select id="prospectModalStatut">
+          <option value="nouveau">nouveau</option>
+          <option value="contacte">contacté</option>
+          <option value="en_discussion">en discussion</option>
+          <option value="gagne">gagné</option>
+          <option value="perdu">perdu</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>secteur</label>
+      <select id="prospectModalSecteur" onchange="toggleSecteurAutre('prospectModalSecteur', 'prospectModalSecteurAutre')">
+        <option value="coaching">coaching et bien-être</option>
+        <option value="artisanat">artisanat / BTP</option>
+        <option value="conseil">conseil et services intellectuels</option>
+        <option value="creatif">freelance créatif</option>
+        <option value="commerce">commerce et produit physique</option>
+        <option value="autre">autre (précise)</option>
+      </select>
+      <input type="text" id="prospectModalSecteurAutre" class="hidden" placeholder="ex : photographe animalier">
+    </div>
+
+    <div class="field">
+      <label>notes / contexte</label>
+      <textarea id="prospectModalNotes"></textarea>
+    </div>
+
+    <div class="modal-actions">
+      <button class="icon-btn" onclick="handleSaveProspectEdits()" title="enregistrer">✓ enregistrer</button>
+      <button class="icon-btn danger" onclick="handleDeleteProspect(currentProspectId)" title="supprimer">🗑 supprimer</button>
+    </div>
+
+    <div class="card-label" style="margin-top:22px;"><span>historique d'échanges</span></div>
+    <div id="prospectTimeline"></div>
+  </div>
+</div>
+
+<script src="prospects.js"></script>
+</body>
+</html>

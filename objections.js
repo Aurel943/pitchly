@@ -14,6 +14,14 @@
    ================================================================ */
 
 let currentProfile = null;
+let lastProspectsForSelect = [];
+
+async function populateProspectSelect() {
+  lastProspectsForSelect = await getProspects();
+  const select = document.getElementById('prospectSelect');
+  select.innerHTML = '<option value="">— aucun prospect —</option>' +
+    lastProspectsForSelect.map(p => `<option value="${p.id}">${p.nom}${p.entreprise ? ' · ' + p.entreprise : ''}</option>`).join('');
+}
 
 async function checkAccess() {
   const session = await getSession();
@@ -160,9 +168,11 @@ async function handleSaveObjection() {
   const reponse = document.getElementById('objectionOutputText').textContent;
   if (!objection || !reponse) return;
 
+  const prospectId = document.getElementById('prospectSelect').value || null;
+
   const { error } = await supabaseClient
     .from('saved_objections')
-    .insert({ user_id: currentUser.id, objection, reponse });
+    .insert({ user_id: currentUser.id, objection, reponse, prospect_id: prospectId });
 
   if (error) {
     alert('Erreur lors de la sauvegarde : ' + error.message);
@@ -303,6 +313,7 @@ async function startApp(profile) {
   currentProfile = profile;
   renderProfilePill(profile);
   updateQuotaDisplay();
+  await populateProspectSelect();
   await renderSavedObjectionsList();
 }
 

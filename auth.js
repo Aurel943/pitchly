@@ -25,6 +25,15 @@ const LABELS_SECTEUR = {
   commerce: 'commerce et produit physique',
 };
 
+// Pipeline de statut des fiches prospects (prospects.html)
+const LABELS_STATUT = {
+  nouveau: 'nouveau',
+  contacte: 'contacté',
+  en_discussion: 'en discussion',
+  gagne: 'gagné',
+  perdu: 'perdu',
+};
+
 function currentMonthKey() {
   const now = new Date();
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
@@ -105,14 +114,19 @@ function toggleSecteurAutre(selectId, inputId) {
 // Récupère et fusionne les scripts + objections sauvegardés d'un coup,
 // triés par date décroissante. Partagé par les widgets du dashboard
 // (activité récente, progression) qui ont tous besoin de croiser les
-// deux tables de la même façon.
-async function getCombinedSaved({ filterRatedOnly = false, limit = null } = {}) {
-  let scriptsQuery = supabaseClient.from('saved_scripts').select('texte, outcome, created_at').order('created_at', { ascending: false });
-  let objectionsQuery = supabaseClient.from('saved_objections').select('reponse, outcome, created_at').order('created_at', { ascending: false });
+// deux tables de la même façon. prospectId (optionnel) restreint le
+// résultat à l'historique d'un seul prospect (prospects.html).
+async function getCombinedSaved({ filterRatedOnly = false, limit = null, prospectId = null } = {}) {
+  let scriptsQuery = supabaseClient.from('saved_scripts').select('texte, outcome, created_at, prospect_id').order('created_at', { ascending: false });
+  let objectionsQuery = supabaseClient.from('saved_objections').select('reponse, outcome, created_at, prospect_id').order('created_at', { ascending: false });
 
   if (filterRatedOnly) {
     scriptsQuery = scriptsQuery.not('outcome', 'is', null);
     objectionsQuery = objectionsQuery.not('outcome', 'is', null);
+  }
+  if (prospectId) {
+    scriptsQuery = scriptsQuery.eq('prospect_id', prospectId);
+    objectionsQuery = objectionsQuery.eq('prospect_id', prospectId);
   }
   if (limit) {
     scriptsQuery = scriptsQuery.limit(limit);
@@ -127,6 +141,13 @@ async function getCombinedSaved({ filterRatedOnly = false, limit = null } = {}) 
   ];
 
   return merged.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+}
+
+// Liste des prospects de l'utilisateur, triés alphabétiquement (utilisée
+// pour peupler les <select> et pour la liste de prospects.html).
+async function getProspects() {
+  const { data } = await supabaseClient.from('prospects').select('*').order('nom', { ascending: true });
+  return data || [];
 }
 
 // Petit toast en bas d'écran — confirme visiblement une action qui n'a

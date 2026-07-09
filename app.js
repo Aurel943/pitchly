@@ -65,6 +65,27 @@ function renderProfilePill(profile) {
 
 let currentTone = 'direct';
 let currentProfile = null;
+let lastProspectsForSelect = [];
+
+async function populateProspectSelect() {
+  lastProspectsForSelect = await getProspects();
+  const select = document.getElementById('prospectSelect');
+  select.innerHTML = '<option value="">— aucun prospect —</option>' +
+    lastProspectsForSelect.map(p => `<option value="${p.id}">${p.nom}${p.entreprise ? ' · ' + p.entreprise : ''}</option>`).join('');
+}
+
+// Pré-remplit le contexte avec les notes du prospect choisi, seulement
+// si l'utilisateur n'a rien tapé — on n'écrase jamais un contexte saisi.
+function handleProspectSelectChange() {
+  const prospectId = document.getElementById('prospectSelect').value;
+  const contexteInput = document.getElementById('contexteInput');
+  if (!prospectId || contexteInput.value.trim()) return;
+
+  const prospect = lastProspectsForSelect.find(p => p.id === prospectId);
+  if (prospect && prospect.notes) {
+    contexteInput.value = prospect.notes;
+  }
+}
 
 function updateQuotaDisplay() {
   const restant = Math.max(0, QUOTA_GRATUIT - getQuotaUsed(currentProfile));
@@ -185,10 +206,11 @@ async function handleSave() {
 
   const canal = document.getElementById('canalSelect').value;
   const situation = document.getElementById('situationSelect').value;
+  const prospectId = document.getElementById('prospectSelect').value || null;
 
   await supabaseClient
     .from('saved_scripts')
-    .insert({ user_id: currentUser.id, canal, situation, texte, nom: defaultScriptName(texte) });
+    .insert({ user_id: currentUser.id, canal, situation, texte, nom: defaultScriptName(texte), prospect_id: prospectId });
 
   document.getElementById('saveBtn').classList.add('active');
   await renderSavedList();
@@ -359,6 +381,7 @@ async function startApp(profile) {
   currentProfile = profile;
   renderProfilePill(profile);
   updateQuotaDisplay();
+  await populateProspectSelect();
   await renderSavedList();
 }
 
