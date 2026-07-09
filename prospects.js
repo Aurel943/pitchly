@@ -122,7 +122,9 @@ async function renderProspectsList() {
   }
 
   if (list.length === 0) {
-    container.innerHTML = '<p class="empty-state">aucun prospect pour l\'instant.</p>';
+    container.innerHTML = lastProspects.length === 0
+      ? '<p class="empty-state">aucun prospect pour l\'instant — ajoute ta première fiche ci-dessus, elle pré-remplira tes prochains scripts.</p>'
+      : '<p class="empty-state">aucun prospect ne correspond à cette recherche ou ce filtre.</p>';
     return;
   }
 

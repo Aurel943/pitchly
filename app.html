@@ -3,7 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Pitchly — Mon espace</title>
+<title>Pitchly — Mes scripts</title>
+<meta name="theme-color" content="#16292C">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230F1D1F'/%3E%3Ccircle cx='32' cy='32' r='14' fill='%23D6A343'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,400;0,600;1,500;1,600&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
@@ -16,13 +18,17 @@
 <nav>
   <div class="wrap">
     <a class="logo" href="index.html"><span class="dot"></span>pitchly</a>
+    <div class="nav-tabs">
+      <a href="dashboard.html">dashboard</a>
+      <a href="app.html" class="active">scripts</a>
+      <a href="objections.html">objections</a>
+      <a href="prospects.html">prospects</a>
+    </div>
     <div class="nav-right">
       <!-- affiché dynamiquement par app.js selon le profil enregistré -->
       <div class="profile-pill" id="profilePill">
         chargement du profil…
       </div>
-      <a class="icon-btn" href="prospects.html" title="mes prospects">👤</a>
-      <a class="icon-btn" href="dashboard.html" title="dashboard">←</a>
       <a class="icon-btn" href="compte.html" title="mon compte">⚙</a>
       <button class="icon-btn hidden" id="logoutBtn" onclick="handleLogout()" title="déconnexion">⏻</button>
     </div>
@@ -31,6 +37,11 @@
 
 <main id="mainApp" class="hidden">
   <div class="wrap">
+
+    <header class="page-head">
+      <p class="page-kicker">mes scripts</p>
+      <h1>Ton prochain script, <em>prêt à dire.</em></h1>
+    </header>
 
     <!-- ============ GÉNÉRATEUR ============ -->
     <div class="card">
@@ -121,7 +132,7 @@
 </main>
 
 <!-- ============ MODALE DÉTAIL SCRIPT ============ -->
-<div class="modal-overlay hidden" id="scriptModal">
+<div class="modal-overlay hidden" id="scriptModal" data-dismissable>
   <div class="modal modal-wide">
     <div class="modal-head">
       <input type="text" class="script-name-input" id="scriptModalName" placeholder="nom du script">

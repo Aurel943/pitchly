@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Pitchly — Dashboard</title>
+<meta name="theme-color" content="#16292C">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230F1D1F'/%3E%3Ccircle cx='32' cy='32' r='14' fill='%23D6A343'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,400;0,600;1,500;1,600&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
@@ -16,6 +18,12 @@
 <nav>
   <div class="wrap">
     <a class="logo" href="index.html"><span class="dot"></span>pitchly</a>
+    <div class="nav-tabs">
+      <a href="dashboard.html" class="active">dashboard</a>
+      <a href="app.html">scripts</a>
+      <a href="objections.html">objections</a>
+      <a href="prospects.html">prospects</a>
+    </div>
     <div class="nav-right">
       <a class="nav-avatar" href="compte.html" title="mon compte">
         <span class="nav-avatar-circle" id="navAvatarInitial">?</span>
@@ -29,13 +37,14 @@
 <main id="mainDashboard" class="hidden">
   <div class="wrap">
 
-    <div class="card">
-      <div class="card-label">
-        <span id="welcomeMessage">bienvenue</span>
+    <header class="page-head">
+      <div class="page-head-top">
+        <p class="page-kicker" id="welcomeMessage">bienvenue</p>
         <span class="quota" id="quotaDisplay">— générations restantes</span>
       </div>
+      <h1>Qu'est-ce qu'on vend <em>aujourd'hui&nbsp;?</em></h1>
       <p class="dashboard-stats hidden" id="dashboardStats"></p>
-    </div>
+    </header>
 
     <div class="dashboard-section">
       <span class="section-label">passer à l'action</span>

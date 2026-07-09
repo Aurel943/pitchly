@@ -175,6 +175,13 @@ document.getElementById('tonePills').addEventListener('click', (e) => {
   currentTone = e.target.dataset.tone;
 });
 
+// Ctrl/Cmd + Entrée dans le contexte = générer sans quitter le clavier
+document.getElementById('contexteInput').addEventListener('keydown', (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter' && !document.getElementById('generateBtn').disabled) {
+    handleGenerate();
+  }
+});
+
 
 /* ================================================================
    BLOC 3 — SCRIPTS SAUVEGARDÉS
@@ -232,7 +239,9 @@ async function renderSavedList() {
   }
 
   if (list.length === 0) {
-    container.innerHTML = '<p class="empty-state">aucun script sauvegardé pour l\'instant.</p>';
+    container.innerHTML = lastSavedScripts.length === 0
+      ? '<p class="empty-state">aucun script sauvegardé pour l\'instant — génère ton premier ci-dessus, puis clique sur ★ pour le garder.</p>'
+      : '<p class="empty-state">aucun script ne correspond à cette recherche ou ce filtre.</p>';
     return;
   }
 

@@ -89,6 +89,13 @@ function buildExemplesNote(exemples, secteurLabel) {
   return `<span class="exemples-note">${text}</span>`;
 }
 
+// Ctrl/Cmd + Entrée dans l'objection = générer sans quitter le clavier
+document.getElementById('objectionInput').addEventListener('keydown', (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter' && !document.getElementById('generateObjectionBtn').disabled) {
+    handleGenerateObjection();
+  }
+});
+
 async function handleGenerateObjection() {
   if (getQuotaUsed(currentProfile) >= QUOTA_GRATUIT) {
     alert('Quota gratuit atteint pour ce mois-ci. (ici on brancherait la modale "passer pro")');
@@ -245,7 +252,9 @@ async function renderSavedObjectionsList() {
   }
 
   if (list.length === 0) {
-    container.innerHTML = '<p class="empty-state">aucune objection traitée pour l\'instant.</p>';
+    container.innerHTML = lastSavedObjections.length === 0
+      ? '<p class="empty-state">aucune objection traitée pour l\'instant — saisis ci-dessus la dernière que tu as reçue.</p>'
+      : '<p class="empty-state">aucune objection ne correspond à cette recherche.</p>';
     return;
   }
 

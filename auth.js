@@ -166,3 +166,29 @@ function showToast(message, type = 'info') {
   clearTimeout(toastTimeout);
   toastTimeout = setTimeout(() => toast.classList.remove('visible'), 2800);
 }
+
+/* ================================================================
+   UX GLOBALE DES MODALES
+   Les modales marquées data-dismissable se ferment au clic sur le
+   fond ou avec Échap. Les modales bloquantes du dashboard (connexion,
+   onboarding) ne portent pas l'attribut : les fermer laisserait une
+   page vide.
+   ================================================================ */
+document.addEventListener('click', (e) => {
+  if (e.target.matches('.modal-overlay[data-dismissable]')) {
+    e.target.classList.add('hidden');
+  }
+});
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.modal-overlay[data-dismissable]:not(.hidden)')
+      .forEach(o => o.classList.add('hidden'));
+  }
+
+  // Entrée dans le champ email de connexion = envoyer le lien.
+  if (e.key === 'Enter' && e.target.id === 'authEmailInput') {
+    const btn = document.getElementById('authEmailBtn');
+    if (btn && !btn.disabled) btn.click();
+  }
+});
