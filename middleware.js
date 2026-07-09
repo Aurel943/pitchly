@@ -4,7 +4,7 @@
    l'option "Password Protection" de Vercel. Le mot de passe vient de
    la variable d'environnement SITE_PASSWORD (à définir sur Vercel :
    Project Settings → Environment Variables, et en local dans .env).
-   Le nom d'utilisateur n'est pas vérifié, seul le mot de passe compte.
+   Le nom d'utilisateur n'est pas vérifié, seul le mot de passe compte (mdp : aurel943).
    ================================================================ */
 
 export default function middleware(request) {
