@@ -105,30 +105,28 @@ async function renderDashboard(profile) {
   document.getElementById('navAvatarInitial').textContent = profile.nom ? profile.nom[0].toUpperCase() : '?';
   document.getElementById('navAvatarName').textContent = profile.nom || 'mon compte';
 
-  const [stats, recent] = await Promise.all([getDashboardStats(), getRecentActivity()]);
+  const [stats, recent, progress] = await Promise.all([getDashboardStats(), getRecentActivity(), getProgressData()]);
   renderDashboardStats(stats);
   renderRecentActivity(recent);
+  renderProgress(progress);
 }
 
 /* ================================================================
    STATS RÉELLES + ACTIVITÉ RÉCENTE
    Donne du contenu vivant au dashboard (au lieu d'un simple menu de
-   raccourcis) et met en avant le feedback loop : combien de scripts/
-   objections ont déjà fait leurs preuves.
+   raccourcis) : volumes sauvegardés, derniers éléments traités, et
+   plus bas la progression du taux de réussite (voir getProgressData).
    ================================================================ */
 
 async function getDashboardStats() {
-  const [scripts, objections, workedScripts, workedObjections] = await Promise.all([
+  const [scripts, objections] = await Promise.all([
     supabaseClient.from('saved_scripts').select('id', { count: 'exact', head: true }),
     supabaseClient.from('saved_objections').select('id', { count: 'exact', head: true }),
-    supabaseClient.from('saved_scripts').select('id', { count: 'exact', head: true }).eq('outcome', 'worked'),
-    supabaseClient.from('saved_objections').select('id', { count: 'exact', head: true }).eq('outcome', 'worked'),
   ]);
 
   return {
     scripts: scripts.count || 0,
     objections: objections.count || 0,
-    worked: (workedScripts.count || 0) + (workedObjections.count || 0),
   };
 }
 
@@ -144,9 +142,6 @@ function renderDashboardStats(stats) {
     `${stats.scripts} script${stats.scripts > 1 ? 's' : ''} sauvegardé${stats.scripts > 1 ? 's' : ''}`,
     `${stats.objections} objection${stats.objections > 1 ? 's' : ''} traitée${stats.objections > 1 ? 's' : ''}`,
   ];
-  if (stats.worked > 0) {
-    parts.push(`${stats.worked} qui ${stats.worked > 1 ? 'ont' : 'a'} fait ses preuves`);
-  }
 
   el.textContent = parts.join(' · ');
   el.classList.remove('hidden');
@@ -183,6 +178,100 @@ function renderRecentActivity(items) {
       ${item.outcome === 'worked' ? '<span class="outcome-tag worked">✓ a fonctionné</span>' : ''}
       ${item.outcome === 'failed' ? '<span class="outcome-tag failed">✕ n\'a pas fonctionné</span>' : ''}
       <p>${item.text.slice(0, 100)}${item.text.length > 100 ? '…' : ''}</p>
+    </div>
+  `).join('');
+
+  section.classList.remove('hidden');
+}
+
+/* ================================================================
+   PROGRESSION — taux de réussite dans le temps
+   Réutilise la colonne "outcome" du feedback loop : montre le ROI de
+   l'outil (est-ce que ça marche de mieux en mieux ?) plutôt que de
+   laisser cette donnée uniquement servir en coulisses aux prompts.
+   ================================================================ */
+
+function monthKey(isoString) {
+  const d = new Date(isoString);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function monthLabel(key) {
+  const [y, m] = key.split('-');
+  return new Date(Number(y), Number(m) - 1, 1).toLocaleDateString('fr-FR', { month: 'short' });
+}
+
+async function getProgressData() {
+  const [{ data: scripts }, { data: objections }] = await Promise.all([
+    supabaseClient.from('saved_scripts').select('outcome, created_at').not('outcome', 'is', null),
+    supabaseClient.from('saved_objections').select('outcome, created_at').not('outcome', 'is', null),
+  ]);
+
+  const rated = [...(scripts || []), ...(objections || [])];
+  if (rated.length === 0) return null;
+
+  const byMonth = {};
+  rated.forEach(r => {
+    const key = monthKey(r.created_at);
+    if (!byMonth[key]) byMonth[key] = { worked: 0, total: 0 };
+    byMonth[key].total += 1;
+    if (r.outcome === 'worked') byMonth[key].worked += 1;
+  });
+
+  const months = Object.keys(byMonth).sort();
+  const trend = months.slice(-6).map(key => ({
+    label: monthLabel(key),
+    rate: Math.round((byMonth[key].worked / byMonth[key].total) * 100),
+    total: byMonth[key].total,
+  }));
+
+  const now = new Date();
+  const currentKey = monthKey(now.toISOString());
+  const current = byMonth[currentKey] || null;
+
+  const prevDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const prevKey = monthKey(prevDate.toISOString());
+  const prev = byMonth[prevKey] || null;
+
+  const overallWorked = rated.filter(r => r.outcome === 'worked').length;
+
+  const headlineWorked = current ? current.worked : overallWorked;
+  const headlineTotal = current ? current.total : rated.length;
+
+  return {
+    headlineRate: Math.round((headlineWorked / headlineTotal) * 100),
+    headlineWorked,
+    headlineTotal,
+    isCurrentMonth: current !== null,
+    delta: (current && prev) ? Math.round((current.worked / current.total) * 100) - Math.round((prev.worked / prev.total) * 100) : null,
+    trend,
+  };
+}
+
+function renderProgress(data) {
+  const section = document.getElementById('progressSection');
+
+  if (!data) {
+    section.classList.add('hidden');
+    return;
+  }
+
+  const deltaHtml = data.delta === null ? '' : `
+    <span class="progress-delta ${data.delta >= 0 ? 'up' : 'down'}">
+      ${data.delta >= 0 ? '▲' : '▼'} ${Math.abs(data.delta)} pt${Math.abs(data.delta) > 1 ? 's' : ''} vs mois dernier
+    </span>`;
+
+  document.getElementById('progressHeadline').innerHTML =
+    `${data.headlineRate}% de réussite${data.isCurrentMonth ? ' ce mois-ci' : ''}${deltaHtml}`;
+
+  document.getElementById('progressSubtext').textContent =
+    `${data.headlineWorked} sur ${data.headlineTotal} retour${data.headlineTotal > 1 ? 's' : ''} noté${data.headlineTotal > 1 ? 's' : ''}`;
+
+  const maxBarHeight = 56;
+  document.getElementById('progressTrend').innerHTML = data.trend.map(m => `
+    <div class="progress-bar-col">
+      <div class="progress-bar" style="height:${Math.max(4, Math.round(m.rate * maxBarHeight / 100))}px" title="${m.rate}% (${m.total} retour${m.total > 1 ? 's' : ''})"></div>
+      <span class="progress-bar-label">${m.label}</span>
     </div>
   `).join('');
 

@@ -275,6 +275,16 @@ textarea{resize:vertical;min-height:64px;}
 
 .recent-type{font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--moss);display:block;margin-bottom:2px;}
 
+.progress-card{padding-bottom:24px;}
+.progress-headline{font-family:'Fraunces',serif;font-size:23px;font-weight:600;color:var(--ink);display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:4px;}
+.progress-delta{font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;}
+.progress-delta.up{color:var(--gold-dim);}
+.progress-delta.down{color:var(--rust);}
+.progress-trend{display:flex;align-items:flex-end;gap:16px;margin-top:22px;}
+.progress-bar-col{display:flex;flex-direction:column;align-items:center;gap:8px;flex:1;max-width:48px;}
+.progress-bar{width:100%;max-width:28px;background:var(--gold);border-radius:6px 6px 2px 2px;transition:height .4s var(--ease);}
+.progress-bar-label{font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--text-muted);text-transform:uppercase;}
+
 /* ============================================
    MODALES
    ============================================ */
