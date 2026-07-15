@@ -397,6 +397,10 @@ async function startApp(profile) {
   updateQuotaDisplay();
   await populateProspectSelect();
   await renderSavedList();
+  // filet de sécurité : si des retours notés existent déjà sans profil de
+  // style à jour (ex. généré avant que les colonnes existent en base),
+  // on rattrape ici plutôt que de dépendre du prochain clic 👍/👎
+  currentProfile = await maybeRefreshStyleProfile(currentProfile);
 }
 
 

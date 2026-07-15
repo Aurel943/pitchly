@@ -107,6 +107,12 @@ async function initAccountPage() {
   fillBusinessEditFields(currentProfile);
 
   document.getElementById('mainAccount').classList.remove('hidden');
+
+  // filet de sécurité : si des retours notés existent déjà sans profil de
+  // style à jour (ex. généré avant que les colonnes existent en base),
+  // on rattrape ici plutôt que de dépendre du prochain clic 👍/👎
+  currentProfile = await maybeRefreshStyleProfile(currentProfile);
+  renderStyleProfile(currentProfile);
 }
 
 async function handleSaveAccountInfo() {

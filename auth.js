@@ -172,14 +172,21 @@ async function maybeRefreshStyleProfile(profile) {
       body: JSON.stringify({ items: rated.slice(0, 30) }),
     });
     const data = await response.json();
-    if (!response.ok) return profile;
+    if (!response.ok) {
+      console.error('Échec de la génération du profil de style :', data.error);
+      return profile;
+    }
 
     return await saveProfile({
       style_profile: data.profile,
       style_profile_rated_count: rated.length,
     });
-  } catch {
-    return profile; // échec silencieux — la génération marche très bien sans profil affiné
+  } catch (err) {
+    // non-bloquant pour la génération, mais visible en console pour ne
+    // pas répéter le bug du 15/07/2026 (colonnes manquantes en base,
+    // échec avalé en silence pendant plusieurs jours sans qu'on le sache)
+    console.error('Échec de la mise à jour du profil de style :', err);
+    return profile;
   }
 }
 
