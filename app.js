@@ -64,6 +64,7 @@ function renderProfilePill(profile) {
    ================================================================ */
 
 let currentTone = 'direct';
+let currentAddress = 'vous';
 let currentProfile = null;
 let lastProspectsForSelect = [];
 
@@ -74,17 +75,25 @@ async function populateProspectSelect() {
     lastProspectsForSelect.map(p => `<option value="${p.id}">${p.nom}${p.entreprise ? ' · ' + p.entreprise : ''}</option>`).join('');
 }
 
-// Pré-remplit le contexte avec les notes du prospect choisi, seulement
-// si l'utilisateur n'a rien tapé — on n'écrase jamais un contexte saisi.
-function handleProspectSelectChange() {
-  const prospectId = document.getElementById('prospectSelect').value;
-  const contexteInput = document.getElementById('contexteInput');
-  if (!prospectId || contexteInput.value.trim()) return;
-
+// Construit le bloc structuré envoyé à /api/generate pour le prospect
+// sélectionné (fiche CRM + historique récent des échanges déjà eus avec
+// lui) — contrairement au champ "contexte" libre, ça marche même si
+// l'utilisateur n'a rien tapé, et ça inclut plus que les notes.
+async function buildProspectContext(prospectId) {
+  if (!prospectId) return null;
   const prospect = lastProspectsForSelect.find(p => p.id === prospectId);
-  if (prospect && prospect.notes) {
-    contexteInput.value = prospect.notes;
-  }
+  if (!prospect) return null;
+
+  const historique = await getCombinedSaved({ prospectId, limit: 3 });
+
+  return {
+    nom: prospect.nom,
+    entreprise: prospect.entreprise,
+    secteur: prospect.secteur,
+    statut: prospect.statut,
+    notes: prospect.notes,
+    historique: historique.map(h => ({ type: h.type, outcome: h.outcome, texte: h.text })),
+  };
 }
 
 function updateQuotaDisplay() {
@@ -116,6 +125,7 @@ async function handleGenerate() {
   const canal = document.getElementById('canalSelect').value;
   const situation = document.getElementById('situationSelect').value;
   const contexte = document.getElementById('contexteInput').value.trim();
+  const prospectId = document.getElementById('prospectSelect').value;
   const btn = document.getElementById('generateBtn');
 
   // petit état de chargement le temps que Claude réponde
@@ -123,7 +133,10 @@ async function handleGenerate() {
   btn.textContent = 'génération en cours…';
 
   try {
-    const exemples = await getWorkedScriptExamples(canal);
+    const [exemples, prospect] = await Promise.all([
+      getWorkedScriptExamples(canal),
+      buildProspectContext(prospectId),
+    ]);
 
     const response = await fetch('/api/generate', {
       method: 'POST',
@@ -135,9 +148,11 @@ async function handleGenerate() {
         canal,
         situation,
         ton: currentTone,
+        adresse: currentAddress,
         contexte,
         exemples,
         styleProfile: currentProfile.style_profile || null,
+        prospect,
       }),
     });
 
@@ -177,6 +192,14 @@ document.getElementById('tonePills').addEventListener('click', (e) => {
   document.querySelectorAll('#tonePills .pill').forEach(p => p.classList.remove('active'));
   e.target.classList.add('active');
   currentTone = e.target.dataset.tone;
+});
+
+// Gestion de la pastille tu / vous
+document.getElementById('adressePills').addEventListener('click', (e) => {
+  if (!e.target.classList.contains('pill')) return;
+  document.querySelectorAll('#adressePills .pill').forEach(p => p.classList.remove('active'));
+  e.target.classList.add('active');
+  currentAddress = e.target.dataset.adresse;
 });
 
 // Ctrl/Cmd + Entrée dans le contexte = générer sans quitter le clavier

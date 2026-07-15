@@ -14,6 +14,16 @@
    que /api/generate et /api/objections).
    ================================================================ */
 
+// Retire le markdown que Claude ajoute parfois (**gras**, *italique*) —
+// ce texte est réinjecté brut dans d'autres prompts et affiché tel quel
+// sur compte.html, les astérisques n'ont rien à y faire.
+function stripMarkdown(text) {
+  return text
+    .replace(/\*\*(.*?)\*\*/g, '$1')
+    .replace(/\*(.*?)\*/g, '$1')
+    .trim();
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Méthode non autorisée' });
@@ -22,7 +32,7 @@ export default async function handler(req, res) {
   const { items } = req.body;
 
   const historique = (Array.isArray(items) ? items : [])
-    .map(i => `- [${i.outcome === 'worked' ? 'a fonctionné' : "n'a pas fonctionné"}] (${i.type === 'script' ? 'script' : 'réponse à objection'}) : "${i.text}"`)
+    .map(i => `- [${i.outcome === 'worked' ? 'a fonctionné' : "n'a pas fonctionné"}] (${i.type === 'script' ? 'script' : 'réponse à objection'}) : "${i.text.slice(0, 250)}"`)
     .join('\n');
 
   const prompt = `Tu vas analyser l'historique de messages de vente d'un vendeur indépendant, notés par lui-même comme ayant fonctionné ou pas auprès de ses prospects.
@@ -30,7 +40,7 @@ export default async function handler(req, res) {
 ${historique}
 
 À partir de ces exemples, identifie 3 à 6 patterns concrets qui distinguent ce qui a fonctionné de ce qui n'a pas fonctionné pour ce vendeur en particulier (longueur, structure, formulations précises, ton, présence d'un appel à l'action, etc.).
-Réponds uniquement par une liste à puces concise, en français, rédigée comme des instructions à suivre pour les prochaines générations. Aucune introduction ni conclusion.`;
+Réponds uniquement par une liste à puces concise, en français, rédigée comme des instructions à suivre pour les prochaines générations, sans aucun markdown (pas d'astérisques). Aucune introduction ni conclusion.`;
 
   try {
     const response = await fetch('https://api.anthropic.com/v1/messages', {
@@ -53,7 +63,7 @@ Réponds uniquement par une liste à puces concise, en français, rédigée comm
       return res.status(response.status).json({ error: data.error?.message || 'Erreur API Claude' });
     }
 
-    const profile = data.content?.[0]?.text || '';
+    const profile = stripMarkdown(data.content?.[0]?.text || '');
     return res.status(200).json({ profile });
 
   } catch (err) {

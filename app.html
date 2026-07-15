@@ -71,7 +71,7 @@
 
       <div class="field">
         <label>prospect (optionnel)</label>
-        <select id="prospectSelect" onchange="handleProspectSelectChange()">
+        <select id="prospectSelect">
           <option value="">— aucun prospect —</option>
         </select>
       </div>
@@ -81,12 +81,21 @@
         <textarea id="contexteInput" placeholder="ex : prospect qui a téléchargé mon guide gratuit la semaine dernière"></textarea>
       </div>
 
-      <div class="field">
-        <label>ton</label>
-        <div class="pills" id="tonePills">
-          <span class="pill active" data-tone="direct">direct</span>
-          <span class="pill" data-tone="chaleureux">chaleureux</span>
-          <span class="pill" data-tone="expert">expert</span>
+      <div class="field-row">
+        <div class="field">
+          <label>ton</label>
+          <div class="pills" id="tonePills">
+            <span class="pill active" data-tone="direct">direct</span>
+            <span class="pill" data-tone="chaleureux">chaleureux</span>
+            <span class="pill" data-tone="expert">expert</span>
+          </div>
+        </div>
+        <div class="field">
+          <label>tu ou vous</label>
+          <div class="pills" id="adressePills">
+            <span class="pill" data-adresse="tu">tutoiement</span>
+            <span class="pill active" data-adresse="vous">vouvoiement</span>
+          </div>
         </div>
       </div>
 

@@ -63,6 +63,14 @@
         <textarea id="objectionInput" placeholder="ex : c'est trop cher pour moi"></textarea>
       </div>
 
+      <div class="field">
+        <label>tu ou vous</label>
+        <div class="pills" id="adressePills">
+          <span class="pill" data-adresse="tu">tutoiement</span>
+          <span class="pill active" data-adresse="vous">vouvoiement</span>
+        </div>
+      </div>
+
       <button class="btn-primary" id="generateObjectionBtn" onclick="handleGenerateObjection()">
         ✦ générer la réponse
       </button>

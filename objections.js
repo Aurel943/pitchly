@@ -14,6 +14,7 @@
    ================================================================ */
 
 let currentProfile = null;
+let currentAddress = 'vous';
 let lastProspectsForSelect = [];
 
 async function populateProspectSelect() {
@@ -22,6 +23,34 @@ async function populateProspectSelect() {
   select.innerHTML = '<option value="">— aucun prospect —</option>' +
     lastProspectsForSelect.map(p => `<option value="${p.id}">${p.nom}${p.entreprise ? ' · ' + p.entreprise : ''}</option>`).join('');
 }
+
+// Construit le bloc structuré envoyé à /api/objections pour le prospect
+// sélectionné (fiche CRM + historique récent des échanges déjà eus avec
+// lui) — sans ça, la réponse générée ignore tout du prospect.
+async function buildProspectContext(prospectId) {
+  if (!prospectId) return null;
+  const prospect = lastProspectsForSelect.find(p => p.id === prospectId);
+  if (!prospect) return null;
+
+  const historique = await getCombinedSaved({ prospectId, limit: 3 });
+
+  return {
+    nom: prospect.nom,
+    entreprise: prospect.entreprise,
+    secteur: prospect.secteur,
+    statut: prospect.statut,
+    notes: prospect.notes,
+    historique: historique.map(h => ({ type: h.type, outcome: h.outcome, texte: h.text })),
+  };
+}
+
+// Gestion de la pastille tu / vous
+document.getElementById('adressePills').addEventListener('click', (e) => {
+  if (!e.target.classList.contains('pill')) return;
+  document.querySelectorAll('#adressePills .pill').forEach(p => p.classList.remove('active'));
+  e.target.classList.add('active');
+  currentAddress = e.target.dataset.adresse;
+});
 
 async function checkAccess() {
   const session = await getSession();
@@ -105,12 +134,16 @@ async function handleGenerateObjection() {
   const objection = document.getElementById('objectionInput').value.trim();
   if (!objection) return;
 
+  const prospectId = document.getElementById('prospectSelect').value;
   const btn = document.getElementById('generateObjectionBtn');
   btn.disabled = true;
   btn.textContent = 'génération en cours…';
 
   try {
-    const exemples = await getWorkedObjectionExamples();
+    const [exemples, prospect] = await Promise.all([
+      getWorkedObjectionExamples(),
+      buildProspectContext(prospectId),
+    ]);
 
     const response = await fetch('/api/objections', {
       method: 'POST',
@@ -121,6 +154,8 @@ async function handleGenerateObjection() {
         objection,
         exemples,
         styleProfile: currentProfile.style_profile || null,
+        adresse: currentAddress,
+        prospect,
       }),
     });
 
