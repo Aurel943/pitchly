@@ -17,11 +17,18 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Méthode non autorisée' });
   }
 
-  const { secteur, offre, panier, canal, situation, ton, contexte, exemples } = req.body;
+  const { secteur, offre, panier, canal, situation, ton, contexte, exemples, styleProfile } = req.body;
 
   const blocExemples = Array.isArray(exemples) && exemples.length > 0
     ? `\n\nVoici des exemples de scripts qui ont déjà bien fonctionné pour ce client. Inspire-toi de leur ton et de leur structure, sans les recopier mot pour mot :\n` +
       exemples.map(e => `- (${e.canal} · ${e.situation.replace('_', ' ')}) : "${e.texte}"`).join('\n')
+    : '';
+
+  // Patterns appris de l'historique noté 👍/👎 de CE vendeur (voir
+  // /api/refresh-style) — à respecter en priorité sur les exemples bruts
+  // ci-dessus, qui ne sont que des illustrations ponctuelles.
+  const blocStyleProfile = styleProfile
+    ? `\n\nProfil de style appris de ce vendeur à partir de ses retours terrain, à respecter en priorité :\n${styleProfile}`
     : '';
 
   // Construction du prompt envoyé à Claude, avec toutes les infos
@@ -30,7 +37,7 @@ export default async function handler(req, res) {
 Ton client vend une offre de type "${offre}" à un panier moyen de ${panier}.
 Génère un script de vente pour un ${canal}, dans une situation de "${situation.replace('_', ' ')}".
 Ton souhaité : ${ton}.
-${contexte ? `Contexte supplémentaire donné par l'utilisateur : ${contexte}` : ''}${blocExemples}
+${contexte ? `Contexte supplémentaire donné par l'utilisateur : ${contexte}` : ''}${blocExemples}${blocStyleProfile}
 Réponds uniquement avec le texte du script, sans introduction ni explication autour.`;
 
   try {

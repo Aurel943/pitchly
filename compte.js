@@ -57,6 +57,20 @@ function renderBusinessView(profile) {
   document.getElementById('viewPanier').textContent = profile.panier || '—';
 }
 
+function renderStyleProfile(profile) {
+  const empty = document.getElementById('styleProfileEmpty');
+  const text = document.getElementById('styleProfileText');
+
+  if (profile.style_profile) {
+    empty.classList.add('hidden');
+    text.textContent = profile.style_profile;
+    text.classList.remove('hidden');
+  } else {
+    empty.classList.remove('hidden');
+    text.classList.add('hidden');
+  }
+}
+
 function fillAccountEditFields(profile) {
   document.getElementById('accountEmailDisplay').value = currentSession.user.email || '';
   document.getElementById('accountNomInput').value = profile.nom || '';
@@ -88,6 +102,7 @@ async function initAccountPage() {
   renderProfileHeader(currentProfile);
   renderAccountView(currentProfile);
   renderBusinessView(currentProfile);
+  renderStyleProfile(currentProfile);
   fillAccountEditFields(currentProfile);
   fillBusinessEditFields(currentProfile);
 

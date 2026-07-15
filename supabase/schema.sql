@@ -135,3 +135,13 @@ alter table public.saved_objections add column if not exists prospect_id uuid re
 
 create index if not exists saved_scripts_prospect_id_idx on public.saved_scripts(prospect_id);
 create index if not exists saved_objections_prospect_id_idx on public.saved_objections(prospect_id);
+
+-- PROFIL DE STYLE APPRIS — synthèse (par Claude, via /api/refresh-style)
+-- des patterns qui distinguent, pour cet utilisateur, ce qui a fonctionné
+-- de ce qui n'a pas fonctionné (scripts + réponses aux objections notés
+-- 👍/👎). Régénéré côté client dès que de nouveaux retours arrivent (voir
+-- maybeRefreshStyleProfile dans auth.js) et réinjecté dans chaque
+-- génération — style_profile_rated_count sert juste à savoir si de
+-- nouveaux retours sont arrivés depuis la dernière synthèse.
+alter table public.profiles add column if not exists style_profile text;
+alter table public.profiles add column if not exists style_profile_rated_count int not null default 0;

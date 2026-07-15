@@ -137,6 +137,7 @@ async function handleGenerate() {
         ton: currentTone,
         contexte,
         exemples,
+        styleProfile: currentProfile.style_profile || null,
       }),
     });
 
@@ -152,6 +153,9 @@ async function handleGenerate() {
     document.getElementById('outputMeta').innerHTML = `${situation.replace('_', ' ')} · ${canal}` +
       (exemples.length > 0
         ? `<span class="exemples-note">✨ enrichi par ${exemples.length} exemple${exemples.length > 1 ? 's' : ''} qui ${exemples.length > 1 ? 'ont' : 'a'} déjà marché</span>`
+        : '') +
+      (currentProfile.style_profile
+        ? `<span class="exemples-note">🧠 affiné par ton profil de style personnel</span>`
         : '');
     document.getElementById('outputCard').classList.add('visible');
     document.getElementById('saveBtn').classList.remove('active'); // reset l'état favori
@@ -342,6 +346,7 @@ async function handleSetScriptOutcome(id, value) {
     showToast('Retour retiré.', 'info');
   }
 
+  currentProfile = await maybeRefreshStyleProfile(currentProfile);
   await renderSavedList();
   if (currentScriptId === id) {
     const updated = lastSavedScripts.find(s => s.id === id);

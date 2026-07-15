@@ -120,6 +120,7 @@ async function handleGenerateObjection() {
         offre: currentProfile.offre,
         objection,
         exemples,
+        styleProfile: currentProfile.style_profile || null,
       }),
     });
 
@@ -132,7 +133,10 @@ async function handleGenerateObjection() {
 
     document.getElementById('objectionOutputText').textContent = data.reponse;
     document.getElementById('objectionOutputMeta').innerHTML = objection.slice(0, 60) +
-      buildExemplesNote(exemples, LABELS_SECTEUR[currentProfile.secteur] || currentProfile.secteur);
+      buildExemplesNote(exemples, LABELS_SECTEUR[currentProfile.secteur] || currentProfile.secteur) +
+      (currentProfile.style_profile
+        ? `<span class="exemples-note">🧠 affiné par ton profil de style personnel</span>`
+        : '');
     document.getElementById('objectionOutputCard').classList.add('visible');
     document.getElementById('saveObjectionBtn').classList.remove('active');
 
@@ -212,6 +216,7 @@ async function handleSetObjectionOutcome(id, value) {
     showToast('Retour retiré.', 'info');
   }
 
+  currentProfile = await maybeRefreshStyleProfile(currentProfile);
   await renderSavedObjectionsList();
   if (currentObjectionId === id) {
     const updated = lastSavedObjections.find(o => o.id === id);

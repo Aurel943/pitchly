@@ -262,6 +262,11 @@ textarea{resize:vertical;min-height:64px;}
 
 .exemples-note{display:block;font-size:11.5px;color:var(--gold-dim);margin-top:4px;font-family:'IBM Plex Mono',monospace;}
 
+/* ============================================
+   PROFIL DE STYLE APPRIS (page compte)
+   ============================================ */
+.style-profile-text{font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--ink);line-height:1.85;white-space:pre-wrap;}
+
 .toast{
   position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(16px);
   background:var(--ink);color:var(--paper);padding:12px 22px;border-radius:100px;

@@ -143,6 +143,46 @@ async function getCombinedSaved({ filterRatedOnly = false, limit = null, prospec
   return merged.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 }
 
+// Seuil minimum de retours notés avant de tenter d'en tirer des patterns —
+// en dessous, le signal est trop faible pour que Claude en dégage quoi
+// que ce soit d'utile.
+const STYLE_PROFILE_MIN_RATED = 3;
+
+// Régénère le "profil de style" de l'utilisateur — des patterns concrets
+// (formulations, structure, ton) extraits par Claude de ses scripts et
+// réponses aux objections notés 👍/👎 — puis réinjectés dans chaque
+// génération future (voir /api/generate et /api/objections). C'est ce
+// qui ne peut pas se reproduire en collant le même contexte dans un chat
+// generaliste sans historique : la mémoire s'accumule ici, pas là-bas.
+//
+// Appelée après chaque changement de note. No-op silencieux si pas assez
+// de signal ou si rien de neuf n'est arrivé depuis la dernière synthèse.
+async function maybeRefreshStyleProfile(profile) {
+  const rated = await getCombinedSaved({ filterRatedOnly: true });
+
+  if (rated.length < STYLE_PROFILE_MIN_RATED) return profile;
+  if (rated.length === profile.style_profile_rated_count) return profile;
+
+  try {
+    const response = await fetch('/api/refresh-style', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      // les plus récents suffisent à dégager les patterns actuels, et ça
+      // borne la taille (et le coût) de l'appel même après des centaines de retours
+      body: JSON.stringify({ items: rated.slice(0, 30) }),
+    });
+    const data = await response.json();
+    if (!response.ok) return profile;
+
+    return await saveProfile({
+      style_profile: data.profile,
+      style_profile_rated_count: rated.length,
+    });
+  } catch {
+    return profile; // échec silencieux — la génération marche très bien sans profil affiné
+  }
+}
+
 // Liste des prospects de l'utilisateur, triés alphabétiquement (utilisée
 // pour peupler les <select> et pour la liste de prospects.html).
 async function getProspects() {
