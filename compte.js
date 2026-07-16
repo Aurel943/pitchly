@@ -106,6 +106,8 @@ async function initAccountPage() {
   fillAccountEditFields(currentProfile);
   fillBusinessEditFields(currentProfile);
 
+  const loader = document.getElementById('pageLoader');
+  if (loader) loader.remove();
   document.getElementById('mainAccount').classList.remove('hidden');
 
   // filet de sécurité : si des retours notés existent déjà sans profil de
@@ -125,8 +127,9 @@ async function handleSaveAccountInfo() {
     renderProfileHeader(currentProfile);
     renderAccountView(currentProfile);
     setAccountEditing(false);
+    showToast('Informations enregistrées.', 'info');
   } catch (err) {
-    alert('Erreur : ' + err.message);
+    showToast('Erreur : ' + err.message, 'failed');
   }
 }
 
@@ -143,8 +146,9 @@ async function handleSaveBusinessProfile() {
     renderProfileHeader(currentProfile);
     renderBusinessView(currentProfile);
     setBusinessEditing(false);
+    showToast('Profil métier enregistré.', 'info');
   } catch (err) {
-    alert('Erreur : ' + err.message);
+    showToast('Erreur : ' + err.message, 'failed');
   }
 }
 

@@ -36,6 +36,9 @@
   </div>
 </nav>
 
+<!-- affiché le temps de résoudre session + profil, retiré par objections.js -->
+<div class="page-loader" id="pageLoader"><span class="loader-ring"></span>chargement…</div>
+
 <main id="mainObjections" class="hidden">
   <div class="wrap">
 
@@ -119,7 +122,7 @@
       <button class="icon-btn" onclick="handleCopyObjectionModal()" title="copier">⧉ copier</button>
       <button class="icon-btn" id="objectionModalWorkedBtn" onclick="handleSetObjectionOutcome(currentObjectionId, 'worked')" title="a fonctionné">👍 a fonctionné</button>
       <button class="icon-btn" id="objectionModalFailedBtn" onclick="handleSetObjectionOutcome(currentObjectionId, 'failed')" title="n'a pas fonctionné">👎 n'a pas fonctionné</button>
-      <button class="icon-btn danger" onclick="handleDeleteObjection(currentObjectionId)" title="supprimer">🗑 supprimer</button>
+      <button class="icon-btn danger" onclick="handleDeleteObjection(currentObjectionId, event)" title="supprimer">🗑 supprimer</button>
     </div>
   </div>
 </div>

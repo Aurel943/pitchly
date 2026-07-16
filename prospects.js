@@ -28,6 +28,8 @@ async function checkAccess() {
   }
 
   document.getElementById('logoutBtn').classList.remove('hidden');
+  const loader = document.getElementById('pageLoader');
+  if (loader) loader.remove();
   document.getElementById('mainProspects').classList.remove('hidden');
   await startApp(profile);
 }
@@ -64,7 +66,7 @@ async function handleCreateProspect() {
     .insert({ user_id: currentUser.id, nom, entreprise: entreprise || null, secteur: secteur || null, statut, notes: notes || null });
 
   if (error) {
-    alert('Erreur lors de la création : ' + error.message);
+    showToast('Erreur lors de la création : ' + error.message, 'failed');
     return;
   }
 
@@ -73,6 +75,7 @@ async function handleCreateProspect() {
   document.getElementById('prospectNotesInput').value = '';
   document.getElementById('prospectStatutInput').value = 'nouveau';
 
+  showToast(`Fiche "${nom}" créée.`, 'info');
   await renderProspectsList();
 }
 
@@ -94,7 +97,7 @@ async function handleSetProspectStatut(id, statut) {
     .eq('id', id);
 
   if (error) {
-    alert('Erreur lors de la mise à jour : ' + error.message);
+    showToast('Erreur lors de la mise à jour : ' + error.message, 'failed');
     return;
   }
 
@@ -136,7 +139,7 @@ async function renderProspectsList() {
           <select class="statut-select-inline" onclick="event.stopPropagation()" onchange="event.stopPropagation(); handleSetProspectStatut('${p.id}', this.value)">
             ${Object.entries(LABELS_STATUT).map(([code, label]) => `<option value="${code}" ${p.statut === code ? 'selected' : ''}>${label}</option>`).join('')}
           </select>
-          <button class="icon-btn" onclick="event.stopPropagation(); handleDeleteProspect('${p.id}')" title="supprimer">🗑</button>
+          <button class="icon-btn" onclick="event.stopPropagation(); handleDeleteProspect('${p.id}', event)" title="supprimer (les scripts liés seront détachés)">🗑</button>
         </div>
       </div>
       <span class="tag">${p.entreprise ? p.entreprise + ' · ' : ''}${formatDateTime(p.created_at)}</span>
@@ -252,7 +255,7 @@ async function handleSaveProspectEdits() {
     .eq('id', currentProspectId);
 
   if (error) {
-    alert('Erreur lors de la mise à jour : ' + error.message);
+    showToast('Erreur lors de la mise à jour : ' + error.message, 'failed');
     return;
   }
 
@@ -260,8 +263,8 @@ async function handleSaveProspectEdits() {
   await renderProspectsList();
 }
 
-async function handleDeleteProspect(id) {
-  if (!confirm('Supprimer cette fiche prospect ? Les scripts et objections déjà rattachés seront conservés mais détachés.')) return;
+async function handleDeleteProspect(id, ev) {
+  if (!confirmTap(ev)) return; // premier tap : arme le bouton ("sûr ?")
 
   const { error } = await supabaseClient
     .from('prospects')
@@ -269,11 +272,12 @@ async function handleDeleteProspect(id) {
     .eq('id', id);
 
   if (error) {
-    alert('Erreur lors de la suppression : ' + error.message);
+    showToast('Erreur lors de la suppression : ' + error.message, 'failed');
     return;
   }
 
   if (currentProspectId === id) closeProspectModal();
+  showToast('Fiche supprimée — les scripts liés sont conservés, juste détachés.', 'info');
   await renderProspectsList();
 }
 

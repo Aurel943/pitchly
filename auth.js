@@ -215,6 +215,47 @@ function showToast(message, type = 'info') {
 }
 
 /* ================================================================
+   HELPERS UX PARTAGÉS
+   ================================================================ */
+
+// Confirmation en deux taps pour les actions destructrices : le premier
+// tap "arme" le bouton (il affiche "sûr ?" pendant ~3 s), le second
+// exécute. Remplace confirm() natif — bloquant, non stylable, et
+// particulièrement laid sur mobile. Retourne true quand l'action est
+// confirmée.
+function confirmTap(ev) {
+  const btn = ev && ev.currentTarget;
+  if (!btn) return true; // appel sans bouton identifiable : ne pas bloquer
+
+  if (btn.dataset.armed) {
+    clearTimeout(btn._disarmTimer);
+    delete btn.dataset.armed;
+    // les boutons statiques (modales) survivent à l'action : on restaure
+    btn.textContent = btn._origLabel;
+    btn.classList.remove('arming');
+    return true;
+  }
+
+  btn.dataset.armed = '1';
+  btn._origLabel = btn.textContent;
+  btn.textContent = 'sûr ?';
+  btn.classList.add('arming');
+  btn._disarmTimer = setTimeout(() => {
+    delete btn.dataset.armed;
+    btn.textContent = btn._origLabel;
+    btn.classList.remove('arming');
+  }, 2800);
+  return false;
+}
+
+// Copie + toast de confirmation — pour les boutons copier qui n'ont pas
+// de feedback visuel intégré (ceux des modales).
+function copyWithToast(text) {
+  navigator.clipboard.writeText(text);
+  showToast('Copié dans le presse-papier.', 'info');
+}
+
+/* ================================================================
    UX GLOBALE DES MODALES
    Les modales marquées data-dismissable se ferment au clic sur le
    fond ou avec Échap. Les modales bloquantes du dashboard (connexion,
@@ -238,4 +279,20 @@ document.addEventListener('keydown', (e) => {
     const btn = document.getElementById('authEmailBtn');
     if (btn && !btn.disabled) btn.click();
   }
+
+  // Les pastilles (ton, tu/vous, filtres) sont des <span> : Entrée ou
+  // Espace déclenche le clic pour rester utilisables au clavier.
+  if ((e.key === 'Enter' || e.key === ' ') && e.target.matches && e.target.matches('.pill, .filter')) {
+    e.preventDefault();
+    e.target.click();
+  }
+});
+
+// Rend les pastilles atteignables au clavier (Tab) — elles sont des
+// <span> statiques dans le HTML, plus simple de les équiper ici une fois.
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('.pill, .filter').forEach(el => {
+    el.tabIndex = 0;
+    el.setAttribute('role', 'button');
+  });
 });

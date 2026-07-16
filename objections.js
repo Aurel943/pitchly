@@ -66,6 +66,8 @@ async function checkAccess() {
   }
 
   document.getElementById('logoutBtn').classList.remove('hidden');
+  const loader = document.getElementById('pageLoader');
+  if (loader) loader.remove();
   document.getElementById('mainObjections').classList.remove('hidden');
   await startApp(profile);
 }
@@ -77,7 +79,16 @@ function renderProfilePill(profile) {
 
 function updateQuotaDisplay() {
   const restant = Math.max(0, QUOTA_GRATUIT - getQuotaUsed(currentProfile));
-  document.getElementById('quotaDisplay').textContent = `${restant} générations restantes`;
+  document.getElementById('quotaDisplay').textContent =
+    `${restant} génération${restant > 1 ? 's' : ''} restante${restant > 1 ? 's' : ''}`;
+
+  // Quota épuisé : le bouton le dit clairement au lieu de laisser cliquer
+  // dans le vide (l'état est levé au changement de mois, côté getQuotaUsed).
+  const btn = document.getElementById('generateObjectionBtn');
+  if (restant === 0) {
+    btn.disabled = true;
+    btn.textContent = 'quota mensuel épuisé';
+  }
 }
 
 async function getWorkedObjectionExamples() {
@@ -127,7 +138,7 @@ document.getElementById('objectionInput').addEventListener('keydown', (e) => {
 
 async function handleGenerateObjection() {
   if (getQuotaUsed(currentProfile) >= QUOTA_GRATUIT) {
-    alert('Quota gratuit atteint pour ce mois-ci. (ici on brancherait la modale "passer pro")');
+    showToast('Quota gratuit épuisé pour ce mois-ci — il se réinitialise le 1er du mois.', 'failed');
     return;
   }
 
@@ -162,7 +173,7 @@ async function handleGenerateObjection() {
     const data = await response.json();
 
     if (!response.ok) {
-      alert('Erreur : ' + (data.error || 'impossible de générer la réponse'));
+      showToast('Erreur : ' + (data.error || 'impossible de générer la réponse'), 'failed');
       return;
     }
 
@@ -172,17 +183,20 @@ async function handleGenerateObjection() {
       (currentProfile.style_profile
         ? `<span class="exemples-note">🧠 affiné par ton profil de style personnel</span>`
         : '');
-    document.getElementById('objectionOutputCard').classList.add('visible');
+    const outputCard = document.getElementById('objectionOutputCard');
+    outputCard.classList.add('visible');
+    // amène le résultat dans le viewport (sur mobile il naît sous le fold)
+    outputCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     document.getElementById('saveObjectionBtn').classList.remove('active');
 
     currentProfile = await incrementQuotaUsed(currentProfile);
-    updateQuotaDisplay();
 
   } catch (err) {
-    alert('Erreur réseau, réessaie dans un instant.');
+    showToast('Erreur réseau, réessaie dans un instant.', 'failed');
   } finally {
     btn.disabled = false;
     btn.textContent = '✦ générer la réponse';
+    updateQuotaDisplay(); // re-désactive le bouton si ce coup a épuisé le quota
   }
 }
 
@@ -221,11 +235,12 @@ async function handleSaveObjection() {
     .insert({ user_id: currentUser.id, objection, reponse, prospect_id: prospectId });
 
   if (error) {
-    alert('Erreur lors de la sauvegarde : ' + error.message);
+    showToast('Erreur lors de la sauvegarde : ' + error.message, 'failed');
     return;
   }
 
   document.getElementById('saveObjectionBtn').classList.add('active');
+  showToast('★ Objection sauvegardée.', 'info');
   await renderSavedObjectionsList();
 }
 
@@ -239,7 +254,7 @@ async function handleSetObjectionOutcome(id, value) {
     .eq('id', id);
 
   if (error) {
-    alert('Erreur lors de la mise à jour : ' + error.message);
+    showToast('Erreur lors de la mise à jour : ' + error.message, 'failed');
     return;
   }
 
@@ -259,8 +274,8 @@ async function handleSetObjectionOutcome(id, value) {
   }
 }
 
-async function handleDeleteObjection(id) {
-  if (!confirm('Supprimer cette objection sauvegardée ?')) return;
+async function handleDeleteObjection(id, ev) {
+  if (!confirmTap(ev)) return; // premier tap : arme le bouton ("sûr ?")
 
   const { error } = await supabaseClient
     .from('saved_objections')
@@ -268,11 +283,12 @@ async function handleDeleteObjection(id) {
     .eq('id', id);
 
   if (error) {
-    alert('Erreur lors de la suppression : ' + error.message);
+    showToast('Erreur lors de la suppression : ' + error.message, 'failed');
     return;
   }
 
   if (currentObjectionId === id) closeObjectionModal();
+  showToast('Objection supprimée.', 'info');
   await renderSavedObjectionsList();
 }
 
@@ -305,7 +321,7 @@ async function renderSavedObjectionsList() {
         <div class="saved-item-actions">
           <button class="icon-btn ${o.outcome === 'worked' ? 'fb-on-worked' : ''}" onclick="event.stopPropagation(); handleSetObjectionOutcome('${o.id}', 'worked')" title="a fonctionné">👍</button>
           <button class="icon-btn ${o.outcome === 'failed' ? 'fb-on-failed' : ''}" onclick="event.stopPropagation(); handleSetObjectionOutcome('${o.id}', 'failed')" title="n'a pas fonctionné">👎</button>
-          <button class="icon-btn" onclick="event.stopPropagation(); handleDeleteObjection('${o.id}')" title="supprimer">🗑</button>
+          <button class="icon-btn" onclick="event.stopPropagation(); handleDeleteObjection('${o.id}', event)" title="supprimer">🗑</button>
         </div>
       </div>
       <span class="tag">${formatDateTime(o.created_at)}</span>
@@ -354,8 +370,7 @@ function closeObjectionModal() {
 }
 
 function handleCopyObjectionModal() {
-  const texte = document.getElementById('objectionModalText').textContent;
-  navigator.clipboard.writeText(texte);
+  copyWithToast(document.getElementById('objectionModalText').textContent);
 }
 
 async function startApp(profile) {

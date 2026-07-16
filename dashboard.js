@@ -7,6 +7,8 @@
    ================================================================ */
 
 function showOnly(overlayId) {
+  const loader = document.getElementById('pageLoader');
+  if (loader) loader.remove(); // la gate a tranché : on sait quoi afficher
   document.getElementById('authModal').classList.toggle('hidden', overlayId !== 'authModal');
   document.getElementById('accountInfoModal').classList.toggle('hidden', overlayId !== 'accountInfoModal');
   document.getElementById('onboardingModal').classList.toggle('hidden', overlayId !== 'onboardingModal');
@@ -75,7 +77,7 @@ async function handleAccountInfoSubmit() {
     showOnly('mainDashboard');
     renderDashboard(profile);
   } catch (err) {
-    alert('Erreur lors de la sauvegarde du compte : ' + err.message);
+    showToast('Erreur lors de la sauvegarde du compte : ' + err.message, 'failed');
   }
 }
 
@@ -92,7 +94,7 @@ async function handleOnboardingSubmit() {
     showOnly('mainDashboard');
     renderDashboard(profile);
   } catch (err) {
-    alert('Erreur lors de la sauvegarde du profil : ' + err.message);
+    showToast('Erreur lors de la sauvegarde du profil : ' + err.message, 'failed');
   }
 }
 

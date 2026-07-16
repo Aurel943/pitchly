@@ -35,6 +35,9 @@
   </div>
 </nav>
 
+<!-- affiché le temps de résoudre session + profil, retiré par prospects.js -->
+<div class="page-loader" id="pageLoader"><span class="loader-ring"></span>chargement…</div>
+
 <main id="mainProspects" class="hidden">
   <div class="wrap">
 
@@ -165,7 +168,7 @@
 
     <div class="modal-actions">
       <button class="icon-btn" onclick="handleSaveProspectEdits()" title="enregistrer">✓ enregistrer</button>
-      <button class="icon-btn danger" onclick="handleDeleteProspect(currentProspectId)" title="supprimer">🗑 supprimer</button>
+      <button class="icon-btn danger" onclick="handleDeleteProspect(currentProspectId, event)" title="supprimer (les scripts liés seront détachés)">🗑 supprimer</button>
     </div>
 
     <div class="card-label" style="margin-top:22px;"><span>historique d'échanges</span></div>

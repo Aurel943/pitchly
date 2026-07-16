@@ -42,6 +42,8 @@ async function checkAccess() {
   }
 
   document.getElementById('logoutBtn').classList.remove('hidden');
+  const loader = document.getElementById('pageLoader');
+  if (loader) loader.remove();
   document.getElementById('mainApp').classList.remove('hidden');
   await startApp(profile);
 }
@@ -98,7 +100,16 @@ async function buildProspectContext(prospectId) {
 
 function updateQuotaDisplay() {
   const restant = Math.max(0, QUOTA_GRATUIT - getQuotaUsed(currentProfile));
-  document.getElementById('quotaDisplay').textContent = `${restant} générations restantes`;
+  document.getElementById('quotaDisplay').textContent =
+    `${restant} génération${restant > 1 ? 's' : ''} restante${restant > 1 ? 's' : ''}`;
+
+  // Quota épuisé : le bouton le dit clairement au lieu de laisser cliquer
+  // dans le vide (l'état est levé au changement de mois, côté getQuotaUsed).
+  const btn = document.getElementById('generateBtn');
+  if (restant === 0) {
+    btn.disabled = true;
+    btn.textContent = 'quota mensuel épuisé';
+  }
 }
 
 async function getWorkedScriptExamples(canal) {
@@ -118,7 +129,7 @@ async function getWorkedScriptExamples(canal) {
 
 async function handleGenerate() {
   if (getQuotaUsed(currentProfile) >= QUOTA_GRATUIT) {
-    alert('Quota gratuit atteint pour ce mois-ci. (ici on brancherait la modale "passer pro")');
+    showToast('Quota gratuit épuisé pour ce mois-ci — il se réinitialise le 1er du mois.', 'failed');
     return;
   }
 
@@ -159,7 +170,7 @@ async function handleGenerate() {
     const data = await response.json();
 
     if (!response.ok) {
-      alert('Erreur : ' + (data.error || 'impossible de générer le script'));
+      showToast('Erreur : ' + (data.error || 'impossible de générer le script'), 'failed');
       return;
     }
 
@@ -172,17 +183,20 @@ async function handleGenerate() {
       (currentProfile.style_profile
         ? `<span class="exemples-note">🧠 affiné par ton profil de style personnel</span>`
         : '');
-    document.getElementById('outputCard').classList.add('visible');
+    const outputCard = document.getElementById('outputCard');
+    outputCard.classList.add('visible');
+    // amène le résultat dans le viewport (sur mobile il naît sous le fold)
+    outputCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     document.getElementById('saveBtn').classList.remove('active'); // reset l'état favori
 
     currentProfile = await incrementQuotaUsed(currentProfile);
-    updateQuotaDisplay();
 
   } catch (err) {
-    alert('Erreur réseau, réessaie dans un instant.');
+    showToast('Erreur réseau, réessaie dans un instant.', 'failed');
   } finally {
     btn.disabled = false;
     btn.textContent = '✦ générer le script';
+    updateQuotaDisplay(); // re-désactive le bouton si ce coup a épuisé le quota
   }
 }
 
@@ -242,11 +256,17 @@ async function handleSave() {
   const situation = document.getElementById('situationSelect').value;
   const prospectId = document.getElementById('prospectSelect').value || null;
 
-  await supabaseClient
+  const { error } = await supabaseClient
     .from('saved_scripts')
     .insert({ user_id: currentUser.id, canal, situation, texte, nom: defaultScriptName(texte), prospect_id: prospectId });
 
+  if (error) {
+    showToast('Erreur lors de la sauvegarde : ' + error.message, 'failed');
+    return;
+  }
+
   document.getElementById('saveBtn').classList.add('active');
+  showToast('★ Script sauvegardé.', 'info');
   await renderSavedList();
 }
 
@@ -279,7 +299,7 @@ async function renderSavedList() {
         <div class="saved-item-actions">
           <button class="icon-btn ${s.outcome === 'worked' ? 'fb-on-worked' : ''}" onclick="event.stopPropagation(); handleSetScriptOutcome('${s.id}', 'worked')" title="a fonctionné">👍</button>
           <button class="icon-btn ${s.outcome === 'failed' ? 'fb-on-failed' : ''}" onclick="event.stopPropagation(); handleSetScriptOutcome('${s.id}', 'failed')" title="n'a pas fonctionné">👎</button>
-          <button class="icon-btn" onclick="event.stopPropagation(); handleDeleteScript('${s.id}')" title="supprimer">🗑</button>
+          <button class="icon-btn" onclick="event.stopPropagation(); handleDeleteScript('${s.id}', event)" title="supprimer">🗑</button>
         </div>
       </div>
       <span class="tag">${s.situation.replace('_', ' ')} · ${s.canal} · ${formatDateTime(s.created_at)}</span>
@@ -339,11 +359,17 @@ async function handleRenameScriptSubmit() {
   if (!currentScriptId) return;
   const nom = document.getElementById('scriptModalName').value.trim();
 
-  await supabaseClient
+  const { error } = await supabaseClient
     .from('saved_scripts')
     .update({ nom })
     .eq('id', currentScriptId);
 
+  if (error) {
+    showToast('Erreur lors du renommage : ' + error.message, 'failed');
+    return;
+  }
+
+  showToast('Nom enregistré.', 'info');
   await renderSavedList();
 }
 
@@ -377,21 +403,26 @@ async function handleSetScriptOutcome(id, value) {
   }
 }
 
-async function handleDeleteScript(id) {
-  if (!confirm('Supprimer ce script sauvegardé ?')) return;
+async function handleDeleteScript(id, ev) {
+  if (!confirmTap(ev)) return; // premier tap : arme le bouton ("sûr ?")
 
-  await supabaseClient
+  const { error } = await supabaseClient
     .from('saved_scripts')
     .delete()
     .eq('id', id);
 
+  if (error) {
+    showToast('Erreur lors de la suppression : ' + error.message, 'failed');
+    return;
+  }
+
   if (currentScriptId === id) closeScriptModal();
+  showToast('Script supprimé.', 'info');
   await renderSavedList();
 }
 
 function handleCopyScriptModal() {
-  const texte = document.getElementById('scriptModalText').textContent;
-  navigator.clipboard.writeText(texte);
+  copyWithToast(document.getElementById('scriptModalText').textContent);
 }
 
 
