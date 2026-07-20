@@ -12,15 +12,11 @@
    ================================================================ */
 
 // Un email et un message LinkedIn n'ont ni la même longueur naturelle ni
-// la même structure qu'un script d'appel — leur donner le même budget de
-// tokens gaspille des tokens sur les formats courts et peut tronquer les
-// formats longs. max_tokens sert aussi de garde-fou dur en plus de la
-// consigne de longueur dans le prompt.
+// la même structure — leur donner le même budget de tokens gaspille des
+// tokens sur les formats courts et peut tronquer les formats longs.
+// max_tokens sert aussi de garde-fou dur en plus de la consigne de
+// longueur dans le prompt.
 const CANAL_GUIDANCE = {
-  appel: {
-    maxTokens: 480,
-    format: "C'est un script à dire à voix haute au téléphone : phrases courtes, rythme oral naturel, aucune tournure écrite (\"cordialement\", \"veuillez\"). Prévois une ou deux relances si le prospect hésite ou objecte.",
-  },
   email: {
     maxTokens: 300,
     format: "C'est un email : objet court + corps de 5 à 8 lignes maximum, formulé à l'écrit, sans tournure orale.",

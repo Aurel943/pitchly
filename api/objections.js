@@ -9,8 +9,8 @@
    ================================================================ */
 
 // Retire le markdown que Claude ajoute parfois (**gras**, *italique*,
-// titres #) même quand on le lui interdit — ces réponses sont dites à
-// l'oral, les astérisques n'ont rien à y faire.
+// titres #) même quand on le lui interdit — ces réponses sont envoyées
+// telles quelles par écrit, les astérisques n'ont rien à y faire.
 function stripMarkdown(text) {
   return text
     .replace(/\*\*(.*?)\*\*/g, '$1')
@@ -56,11 +56,11 @@ export default async function handler(req, res) {
   const prompt = `Tu es un copywriter commercial senior qui écrit pour des indépendants du secteur ${secteur}.
 Ton client vend une offre de type "${offre}".
 Un prospect lui oppose l'objection suivante : "${objection}"
-Génère une réponse à donner à l'oral pour lever cette objection, en 2 à 4 phrases maximum. ${adresseInstruction}${blocProspect}${blocExemples}${blocStyleProfile}
+Génère une réponse à écrire, en réponse à son email ou message LinkedIn, pour lever cette objection, en 2 à 4 phrases maximum. ${adresseInstruction}${blocProspect}${blocExemples}${blocStyleProfile}
 
 Évite tout jargon commercial générique ("offre exceptionnelle", "n'hésitez pas à", "saisissez cette opportunité") — écris comme un vrai indépendant parlerait, pas comme une publicité.
 Rédige un premier brouillon, relis-le silencieusement, corrige-le si besoin pour respecter strictement toutes les consignes ci-dessus, puis ne renvoie que cette version finale.
-Réponds uniquement avec le texte de la réponse, sans introduction, sans commentaire, sans aucun markdown (pas d'astérisques, pas de titres) — texte brut prêt à être dit tel quel.`;
+Réponds uniquement avec le texte de la réponse, sans introduction, sans commentaire, sans aucun markdown (pas d'astérisques, pas de titres) — texte brut prêt à être envoyé tel quel.`;
 
   try {
     const response = await fetch('https://api.anthropic.com/v1/messages', {
