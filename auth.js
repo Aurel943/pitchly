@@ -116,28 +116,47 @@ function toggleSecteurAutre(selectId, inputId) {
 // (activité récente, progression) qui ont tous besoin de croiser les
 // deux tables de la même façon. prospectId (optionnel) restreint le
 // résultat à l'historique d'un seul prospect (prospects.html).
-async function getCombinedSaved({ filterRatedOnly = false, limit = null, prospectId = null } = {}) {
+async function getCombinedSaved({ filterRatedOnly = false, limit = null, prospectId = null, includeSequences = false } = {}) {
   let scriptsQuery = supabaseClient.from('saved_scripts').select('texte, outcome, created_at, prospect_id').order('created_at', { ascending: false });
   let objectionsQuery = supabaseClient.from('saved_objections').select('reponse, outcome, created_at, prospect_id').order('created_at', { ascending: false });
+  // Les séquences ne sont croisées que pour l'apprentissage du style (opt-in) :
+  // les widgets du dashboard (activité, progression) gardent leur périmètre
+  // scripts+objections en n'activant pas ce drapeau.
+  let sequencesQuery = includeSequences
+    ? supabaseClient.from('saved_sequences').select('etapes, outcome, created_at, prospect_id').order('created_at', { ascending: false })
+    : null;
 
   if (filterRatedOnly) {
     scriptsQuery = scriptsQuery.not('outcome', 'is', null);
     objectionsQuery = objectionsQuery.not('outcome', 'is', null);
+    if (sequencesQuery) sequencesQuery = sequencesQuery.not('outcome', 'is', null);
   }
   if (prospectId) {
     scriptsQuery = scriptsQuery.eq('prospect_id', prospectId);
     objectionsQuery = objectionsQuery.eq('prospect_id', prospectId);
+    if (sequencesQuery) sequencesQuery = sequencesQuery.eq('prospect_id', prospectId);
   }
   if (limit) {
     scriptsQuery = scriptsQuery.limit(limit);
     objectionsQuery = objectionsQuery.limit(limit);
+    if (sequencesQuery) sequencesQuery = sequencesQuery.limit(limit);
   }
 
-  const [{ data: scripts }, { data: objections }] = await Promise.all([scriptsQuery, objectionsQuery]);
+  const [{ data: scripts }, { data: objections }, sequencesRes] = await Promise.all([
+    scriptsQuery,
+    objectionsQuery,
+    sequencesQuery || Promise.resolve({ data: [] }),
+  ]);
 
   const merged = [
     ...(scripts || []).map(s => ({ type: 'script', text: s.texte, outcome: s.outcome, created_at: s.created_at })),
     ...(objections || []).map(o => ({ type: 'objection', text: o.reponse, outcome: o.outcome, created_at: o.created_at })),
+    ...((sequencesRes && sequencesRes.data) || []).map(s => ({
+      type: 'sequence',
+      text: (Array.isArray(s.etapes) ? s.etapes.map(e => e.message).filter(Boolean).join('\n\n') : ''),
+      outcome: s.outcome,
+      created_at: s.created_at,
+    })),
   ];
 
   return merged.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
@@ -158,7 +177,7 @@ const STYLE_PROFILE_MIN_RATED = 3;
 // Appelée après chaque changement de note. No-op silencieux si pas assez
 // de signal ou si rien de neuf n'est arrivé depuis la dernière synthèse.
 async function maybeRefreshStyleProfile(profile) {
-  const rated = await getCombinedSaved({ filterRatedOnly: true });
+  const rated = await getCombinedSaved({ filterRatedOnly: true, includeSequences: true });
 
   if (rated.length < STYLE_PROFILE_MIN_RATED) return profile;
   if (rated.length === profile.style_profile_rated_count) return profile;

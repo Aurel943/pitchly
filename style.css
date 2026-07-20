@@ -274,6 +274,28 @@ textarea{resize:vertical;min-height:64px;}
 .exemples-note{display:block;font-size:11.5px;color:var(--gold-dim);margin-top:4px;font-family:'IBM Plex Mono',monospace;}
 
 /* ============================================
+   SÉQUENCES — timeline de messages (sequences.html + modale)
+   ============================================ */
+.seq-timeline{display:flex;flex-direction:column;}
+.seq-step{display:grid;grid-template-columns:34px 1fr;gap:14px;position:relative;padding-bottom:22px;}
+/* fil vertical reliant les pastilles (masqué sur la dernière étape) */
+.seq-step:not(:last-child) .seq-step-rail::after{content:'';position:absolute;top:30px;bottom:0;left:50%;width:2px;transform:translateX(-50%);background:rgba(22,41,44,.14);}
+.seq-step-rail{position:relative;display:flex;justify-content:center;}
+.seq-step-dot{width:28px;height:28px;flex-shrink:0;border-radius:50%;background:var(--gold);color:var(--ink);display:flex;align-items:center;justify-content:center;font-family:'Fraunces',serif;font-size:14px;font-weight:600;position:relative;z-index:1;}
+.seq-step-body{min-width:0;padding-top:2px;}
+.seq-step-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px;}
+.seq-step-title{font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:500;letter-spacing:.03em;color:var(--ink);text-transform:none;}
+.seq-step-delay{font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.03em;padding:3px 9px;border-radius:100px;background:rgba(214,163,67,.16);color:var(--gold-dim);}
+.seq-step-copy{margin-left:auto;font-size:13px;}
+.seq-step-objet{font-size:13px;color:var(--ink);margin-bottom:6px;overflow-wrap:break-word;}
+.seq-step-objet span{font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.04em;color:var(--text-muted);margin-right:8px;text-transform:uppercase;}
+.seq-step-message{white-space:pre-wrap;font-size:14px;line-height:1.7;color:var(--ink-light);overflow-wrap:break-word;}
+#sequenceModalTimeline{margin:12px 0 16px;max-height:400px;overflow-y:auto;}
+#sequenceModalTimeline::-webkit-scrollbar{width:8px;}
+#sequenceModalTimeline::-webkit-scrollbar-thumb{background:rgba(22,41,44,.2);border-radius:100px;}
+#sequenceModalTimeline::-webkit-scrollbar-track{background:transparent;}
+
+/* ============================================
    PROFIL DE STYLE APPRIS (page compte)
    ============================================ */
 .style-profile-text{font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--ink);line-height:1.85;white-space:pre-wrap;}

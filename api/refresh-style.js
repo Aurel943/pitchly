@@ -31,8 +31,9 @@ export default async function handler(req, res) {
 
   const { items } = req.body;
 
+  const TYPE_LABELS = { script: 'message', objection: 'réponse à objection', sequence: 'séquence de relance' };
   const historique = (Array.isArray(items) ? items : [])
-    .map(i => `- [${i.outcome === 'worked' ? 'a fonctionné' : "n'a pas fonctionné"}] (${i.type === 'script' ? 'script' : 'réponse à objection'}) : "${i.text.slice(0, 250)}"`)
+    .map(i => `- [${i.outcome === 'worked' ? 'a fonctionné' : "n'a pas fonctionné"}] (${TYPE_LABELS[i.type] || 'message'}) : "${i.text.slice(0, 250)}"`)
     .join('\n');
 
   const prompt = `Tu vas analyser l'historique de messages de vente d'un vendeur indépendant, notés par lui-même comme ayant fonctionné ou pas auprès de ses prospects.

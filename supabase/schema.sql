@@ -145,3 +145,37 @@ create index if not exists saved_objections_prospect_id_idx on public.saved_obje
 -- nouveaux retours sont arrivés depuis la dernière synthèse.
 alter table public.profiles add column if not exists style_profile text;
 alter table public.profiles add column if not exists style_profile_rated_count int not null default 0;
+
+-- SÉQUENCES SAUVEGARDÉES — une ligne par séquence de prospection générée
+-- (premier contact + relances). Les étapes (titre/délai/objet/message) sont
+-- stockées en JSON dans "etapes" plutôt qu'en lignes séparées : une séquence
+-- est toujours lue, notée et supprimée d'un bloc, jamais étape par étape.
+create table if not exists public.saved_sequences (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  nom text,
+  canal text not null,
+  objectif text not null,
+  etapes jsonb not null,
+  outcome text, -- 'worked' | 'failed' | null — retour terrain de l'utilisateur
+  prospect_id uuid references public.prospects(id) on delete set null,
+  created_at timestamptz not null default now()
+);
+
+alter table public.saved_sequences enable row level security;
+
+drop policy if exists "saved_sequences: select own" on public.saved_sequences;
+create policy "saved_sequences: select own" on public.saved_sequences
+  for select using (auth.uid() = user_id);
+drop policy if exists "saved_sequences: insert own" on public.saved_sequences;
+create policy "saved_sequences: insert own" on public.saved_sequences
+  for insert with check (auth.uid() = user_id);
+drop policy if exists "saved_sequences: update own" on public.saved_sequences;
+create policy "saved_sequences: update own" on public.saved_sequences
+  for update using (auth.uid() = user_id);
+drop policy if exists "saved_sequences: delete own" on public.saved_sequences;
+create policy "saved_sequences: delete own" on public.saved_sequences
+  for delete using (auth.uid() = user_id);
+
+create index if not exists saved_sequences_user_id_idx on public.saved_sequences(user_id);
+create index if not exists saved_sequences_prospect_id_idx on public.saved_sequences(prospect_id);
