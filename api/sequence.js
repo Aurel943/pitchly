@@ -148,6 +148,11 @@ Le champ "objet" est une chaîne vide pour LinkedIn. Le champ "message" ne conti
       body: JSON.stringify({
         model: 'claude-sonnet-5',
         max_tokens: maxTokens,
+        // Sonnet 5 active le raisonnement adaptatif par défaut, et max_tokens
+        // plafonne raisonnement + texte cumulés : le raisonnement peut tronquer
+        // (voire vider) le JSON de la séquence. On le coupe — la génération se
+        // suffit du brouillon/relecture demandés dans le prompt.
+        thinking: { type: 'disabled' },
         messages: [{ role: 'user', content: prompt }],
       }),
     });
@@ -158,7 +163,10 @@ Le champ "objet" est une chaîne vide pour LinkedIn. Le champ "message" ne conti
       return res.status(response.status).json({ error: data.error?.message || 'Erreur API Claude' });
     }
 
-    const etapesParsees = parseEtapes(data.content?.[0]?.text || '');
+    // Premier bloc "text" plutôt que content[0] : un éventuel bloc de
+    // raisonnement en tête donnerait content[0].text vide → parse en échec.
+    const brut = (data.content || []).find(b => b.type === 'text')?.text || '';
+    const etapesParsees = parseEtapes(brut);
     if (!etapesParsees) {
       return res.status(502).json({ error: "La séquence générée n'a pas pu être lue. Réessaie dans un instant." });
     }

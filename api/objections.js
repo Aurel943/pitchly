@@ -73,6 +73,10 @@ Réponds uniquement avec le texte de la réponse, sans introduction, sans commen
       body: JSON.stringify({
         model: 'claude-sonnet-5',
         max_tokens: 220,
+        // Sonnet 5 active le raisonnement adaptatif par défaut, et max_tokens
+        // plafonne raisonnement + texte cumulés : sur ce petit budget, le
+        // raisonnement mangeait tout et la réponse revenait vide. On le coupe.
+        thinking: { type: 'disabled' },
         messages: [{ role: 'user', content: prompt }],
       }),
     });
@@ -83,7 +87,10 @@ Réponds uniquement avec le texte de la réponse, sans introduction, sans commen
       return res.status(response.status).json({ error: data.error?.message || 'Erreur API Claude' });
     }
 
-    const reponse = stripMarkdown(data.content?.[0]?.text || '');
+    // Premier bloc "text" plutôt que content[0] : un éventuel bloc de
+    // raisonnement en tête donnerait content[0].text vide.
+    const brut = (data.content || []).find(b => b.type === 'text')?.text || '';
+    const reponse = stripMarkdown(brut);
     return res.status(200).json({ reponse });
 
   } catch (err) {

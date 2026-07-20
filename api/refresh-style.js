@@ -64,7 +64,8 @@ Réponds uniquement par une liste à puces concise, en français, rédigée comm
       return res.status(response.status).json({ error: data.error?.message || 'Erreur API Claude' });
     }
 
-    const profile = stripMarkdown(data.content?.[0]?.text || '');
+    const brut = (data.content || []).find(b => b.type === 'text')?.text || '';
+    const profile = stripMarkdown(brut);
     return res.status(200).json({ profile });
 
   } catch (err) {
