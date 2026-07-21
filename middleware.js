@@ -23,6 +23,14 @@ export default function middleware(request) {
   });
 }
 
+// Tout le site est derrière le mot de passe, SAUF les deux routes
+// appelées par des machines et non par un navigateur :
+//   /api/inbound     — webhook de Resend quand un prospect répond
+//   /api/cron/*      — déclencheur horaire de Vercel
+// Elles ne peuvent pas présenter d'identifiants Basic ; sans cette
+// exclusion elles recevraient un 401 et rien ne partirait jamais.
+// Chacune a sa propre protection : signature du webhook pour l'une,
+// CRON_SECRET pour l'autre.
 export const config = {
-  matcher: '/:path*',
+  matcher: '/((?!api/inbound|api/cron/).*)',
 };

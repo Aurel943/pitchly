@@ -179,3 +179,147 @@ create policy "saved_sequences: delete own" on public.saved_sequences
 
 create index if not exists saved_sequences_user_id_idx on public.saved_sequences(user_id);
 create index if not exists saved_sequences_prospect_id_idx on public.saved_sequences(prospect_id);
+
+-- ================================================================
+-- ENVOI RÉEL & DÉTECTION DES RÉPONSES
+-- Pitchly ne se contente plus de rédiger : il envoie les séquences,
+-- relance tout seul, et surtout MESURE ce qui obtient des réponses.
+-- C'est cette donnée-là (quel message a fait répondre qui, et en
+-- combien de temps) qu'un chatbot généraliste ne peut pas produire.
+-- ================================================================
+
+-- Un prospect qu'on veut contacter par email a besoin d'une adresse.
+alter table public.prospects add column if not exists email text;
+
+-- IDENTITÉ D'ENVOI — d'où partent les emails de cet utilisateur.
+--   mode 'shared' : domaine mutualisé Pitchly, utilisable immédiatement,
+--                   délivrabilité correcte mais pas excellente.
+--   mode 'domain' : domaine de l'utilisateur vérifié chez Resend (SPF/DKIM),
+--                   c'est ce qu'il faut viser dès qu'il envoie du volume.
+-- Une seule identité par utilisateur pour l'instant (clé primaire = user_id).
+create table if not exists public.sending_identities (
+  user_id uuid primary key references auth.users(id) on delete cascade,
+  mode text not null default 'shared',        -- 'shared' | 'domain'
+  from_name text,                              -- "Aurélien Potot"
+  from_email text,                             -- adresse d'expédition effective
+  reply_to_real text,                          -- vraie boîte du vendeur, où on relaie les réponses
+  domain text,                                 -- domaine perso si mode='domain'
+  resend_domain_id text,                       -- id du domaine chez Resend
+  domain_status text default 'pending',        -- 'pending' | 'verified' | 'failed'
+  created_at timestamptz not null default now()
+);
+
+alter table public.sending_identities enable row level security;
+
+drop policy if exists "sending_identities: select own" on public.sending_identities;
+create policy "sending_identities: select own" on public.sending_identities
+  for select using (auth.uid() = user_id);
+drop policy if exists "sending_identities: insert own" on public.sending_identities;
+create policy "sending_identities: insert own" on public.sending_identities
+  for insert with check (auth.uid() = user_id);
+drop policy if exists "sending_identities: update own" on public.sending_identities;
+create policy "sending_identities: update own" on public.sending_identities
+  for update using (auth.uid() = user_id);
+
+-- CAMPAGNE — une séquence effectivement lancée sur UN prospect.
+-- reply_token : identifiant opaque qui sert d'adresse de réponse
+-- (reply+<token>@<domaine inbound>). Quand le prospect répond, c'est
+-- lui qui nous dit de quelle campagne il s'agit — c'est le mécanisme
+-- qui permet de détecter les réponses sans accéder à la boîte mail.
+create table if not exists public.campaigns (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  prospect_id uuid references public.prospects(id) on delete set null,
+  sequence_id uuid references public.saved_sequences(id) on delete set null,
+  nom text,
+  canal text not null default 'email',
+  destinataire text not null,                  -- email figé au lancement
+  statut text not null default 'active',       -- 'active' | 'replied' | 'stopped' | 'done'
+  reply_token text not null unique default encode(gen_random_bytes(9), 'hex'),
+  replied_at timestamptz,
+  started_at timestamptz not null default now(),
+  created_at timestamptz not null default now()
+);
+
+alter table public.campaigns enable row level security;
+
+drop policy if exists "campaigns: select own" on public.campaigns;
+create policy "campaigns: select own" on public.campaigns
+  for select using (auth.uid() = user_id);
+drop policy if exists "campaigns: insert own" on public.campaigns;
+create policy "campaigns: insert own" on public.campaigns
+  for insert with check (auth.uid() = user_id);
+drop policy if exists "campaigns: update own" on public.campaigns;
+create policy "campaigns: update own" on public.campaigns
+  for update using (auth.uid() = user_id);
+drop policy if exists "campaigns: delete own" on public.campaigns;
+create policy "campaigns: delete own" on public.campaigns
+  for delete using (auth.uid() = user_id);
+
+create index if not exists campaigns_user_id_idx on public.campaigns(user_id);
+create index if not exists campaigns_prospect_id_idx on public.campaigns(prospect_id);
+
+-- ÉTAPES PLANIFIÉES — le contenu figé de chaque message et sa date d'envoi.
+-- On fige le texte au lancement (plutôt que de le relire dans
+-- saved_sequences.etapes au moment d'envoyer) : l'utilisateur doit pouvoir
+-- modifier ou supprimer sa séquence sans changer ce qui est déjà programmé.
+create table if not exists public.campaign_steps (
+  id uuid primary key default gen_random_uuid(),
+  campaign_id uuid not null references public.campaigns(id) on delete cascade,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  position int not null,                       -- 0 = premier contact
+  titre text,
+  objet text,
+  message text not null,
+  send_at timestamptz not null,
+  statut text not null default 'pending',      -- 'pending' | 'sent' | 'cancelled' | 'failed'
+  sent_at timestamptz,
+  provider_message_id text,
+  erreur text,
+  created_at timestamptz not null default now()
+);
+
+alter table public.campaign_steps enable row level security;
+
+drop policy if exists "campaign_steps: select own" on public.campaign_steps;
+create policy "campaign_steps: select own" on public.campaign_steps
+  for select using (auth.uid() = user_id);
+drop policy if exists "campaign_steps: insert own" on public.campaign_steps;
+create policy "campaign_steps: insert own" on public.campaign_steps
+  for insert with check (auth.uid() = user_id);
+drop policy if exists "campaign_steps: update own" on public.campaign_steps;
+create policy "campaign_steps: update own" on public.campaign_steps
+  for update using (auth.uid() = user_id);
+
+-- Index qui porte la requête du cron : les étapes à envoyer maintenant.
+create index if not exists campaign_steps_due_idx
+  on public.campaign_steps(statut, send_at);
+create index if not exists campaign_steps_campaign_idx
+  on public.campaign_steps(campaign_id, position);
+
+-- ÉVÉNEMENTS — journal brut de ce qui s'est réellement passé.
+-- C'est la matière première des stats ("tes accroches courtes font 14 %
+-- de réponse") : on ne dérive jamais une stat d'un ressenti, seulement
+-- de lignes écrites ici par le serveur.
+create table if not exists public.email_events (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  campaign_id uuid references public.campaigns(id) on delete cascade,
+  step_id uuid references public.campaign_steps(id) on delete set null,
+  type text not null,                          -- 'sent' | 'replied' | 'bounced' | 'complaint' | 'failed'
+  payload jsonb,
+  created_at timestamptz not null default now()
+);
+
+alter table public.email_events enable row level security;
+
+drop policy if exists "email_events: select own" on public.email_events;
+create policy "email_events: select own" on public.email_events
+  for select using (auth.uid() = user_id);
+
+create index if not exists email_events_user_idx on public.email_events(user_id, type);
+create index if not exists email_events_campaign_idx on public.email_events(campaign_id);
+
+-- Désinscription : un prospect qui répond STOP ne doit plus jamais
+-- recevoir d'email de ce vendeur, y compris via une future campagne.
+alter table public.prospects add column if not exists opted_out_at timestamptz;
