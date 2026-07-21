@@ -21,7 +21,7 @@
    la vidange de la file d'envoi à volonté.
    ================================================================ */
 
-import { sbFetch, sendEmail, fromAddress, replyAddress } from '../_lib.js';
+import { sbFetch, sendEmail, fromAddress, replyAddress, destinataireInterditEnTest } from '../_lib.js';
 
 // Nombre d'étapes traitées par exécution — borne le temps d'exécution
 // de la fonction serverless. Le cron repasse à l'heure suivante pour
@@ -93,6 +93,22 @@ export default async function handler(req, res) {
         continue;
       }
 
+      const identite = identiteParUser[etape.user_id];
+
+      // Deuxième barrière du mode test : une campagne a pu être lancée
+      // avant que le mode ne s'active, ou l'adresse de repli avoir changé
+      // depuis. On annule l'étape plutôt que de la laisser échouer en
+      // boucle à chaque passage du cron.
+      const refusTest = destinataireInterditEnTest(campagne.destinataire, identite);
+      if (refusTest) {
+        await sbFetch(`campaign_steps?id=eq.${etape.id}&statut=eq.pending`, {
+          method: 'PATCH',
+          body: { statut: 'cancelled', erreur: refusTest },
+        });
+        resultats.ignores++;
+        continue;
+      }
+
       // Réservation optimiste : on passe l'étape à 'sent' en exigeant
       // qu'elle soit encore 'pending'. Si une exécution concurrente est
       // passée avant, le PATCH ne renvoie aucune ligne et on saute
@@ -110,7 +126,6 @@ export default async function handler(req, res) {
         continue;
       }
 
-      const identite = identiteParUser[etape.user_id];
       const replyTo = replyAddress(campagne.reply_token);
 
       try {

@@ -24,13 +24,25 @@ const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || 'sb_publishable_u7T90
 // le front, jamais dans le repo.
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-// Domaine mutualisé d'expédition tant que l'utilisateur n'a pas vérifié
-// le sien (mode 'shared' de sending_identities).
-const SHARED_SENDING_DOMAIN = process.env.SHARED_SENDING_DOMAIN || 'envois.pitchly.app';
+// MODE TEST — pour valider le circuit complet sans posséder de domaine.
+//
+// Resend autorise l'envoi depuis onboarding@resend.dev sans aucune
+// vérification DNS, mais uniquement vers l'adresse du titulaire du
+// compte. C'est suffisant pour éprouver toute la chaîne (planification,
+// cron, réponse, arrêt des relances) en s'envoyant des messages à
+// soi-même.
+//
+// Le mode s'active tant qu'aucun domaine d'expédition n'est configuré :
+// impossible d'oublier de le désactiver, il disparaît de lui-même le
+// jour où SHARED_SENDING_DOMAIN est renseigné.
+const SHARED_SENDING_DOMAIN = process.env.SHARED_SENDING_DOMAIN || null;
+const MODE_TEST = !SHARED_SENDING_DOMAIN;
+const EXPEDITEUR_TEST = 'onboarding@resend.dev';
 
 // Domaine qui reçoit les réponses des prospects (MX pointés vers Resend
-// inbound). Chaque campagne y a son adresse reply+<token>@…
-const INBOUND_DOMAIN = process.env.INBOUND_DOMAIN || 'reponses.pitchly.app';
+// inbound). En test, c'est le domaine managé <quelquechose>.resend.app
+// fourni par Resend, qui ne demande aucun DNS.
+const INBOUND_DOMAIN = process.env.INBOUND_DOMAIN || 'exemple.resend.app';
 
 /* ---------------------------------------------------------------
    Identité de l'appelant
@@ -141,7 +153,24 @@ export function fromAddress(identity, userId) {
   if (identity?.mode === 'domain' && identity.domain_status === 'verified' && identity.from_email) {
     return `${nom} <${identity.from_email}>`;
   }
+  if (MODE_TEST) {
+    return `${nom} <${EXPEDITEUR_TEST}>`;
+  }
   return `${nom} <u${String(userId).slice(0, 8)}@${SHARED_SENDING_DOMAIN}>`;
+}
+
+// Garde-fou du mode test : Resend refuserait de toute façon un envoi
+// vers un tiers depuis onboarding@resend.dev, mais l'échec surviendrait
+// APRÈS la programmation de la séquence — l'utilisateur croirait avoir
+// lancé une campagne qui ne partira jamais. On refuse donc en amont,
+// avec un message qui explique pourquoi.
+export function destinataireInterditEnTest(destinataire, identity) {
+  if (!MODE_TEST) return null;
+
+  const autorisee = (identity?.reply_to_real || '').trim().toLowerCase();
+  if (autorisee && destinataire.trim().toLowerCase() === autorisee) return null;
+
+  return `Mode test : tant qu'aucun domaine d'envoi n'est configuré, Pitchly ne peut écrire qu'à ta propre adresse${autorisee ? ` (${autorisee})` : ''}. Configure un domaine d'expédition pour contacter de vrais prospects.`;
 }
 
 // Envoi via l'API REST de Resend (pas de SDK : le projet n'a aucune
@@ -195,22 +224,27 @@ export function joursDepuisLancement(delai, position) {
 // On décale au prochain créneau lundi-vendredi 9h-17h.
 export function prochainCreneauOuvre(date) {
   const d = new Date(date);
-  const jour = d.getUTCDay();          // 0 = dimanche, 6 = samedi
+
+  // 1. L'heure d'abord. Trop tôt : on cale à l'ouverture du jour même.
+  //    Trop tard : on bascule à l'ouverture du lendemain.
+  //    (7h30 UTC = 9h30 à Paris en été.)
   const heure = d.getUTCHours();
-
-  if (jour === 6) d.setUTCDate(d.getUTCDate() + 2);
-  else if (jour === 0) d.setUTCDate(d.getUTCDate() + 1);
-
   if (heure < 7) {
-    d.setUTCHours(7, 30, 0, 0);        // 9h30 en heure de Paris (UTC+2)
+    d.setUTCHours(7, 30, 0, 0);
   } else if (heure >= 15) {
     d.setUTCDate(d.getUTCDate() + 1);
     d.setUTCHours(7, 30, 0, 0);
-    const nouveauJour = d.getUTCDay();
-    if (nouveauJour === 6) d.setUTCDate(d.getUTCDate() + 2);
-    if (nouveauJour === 0) d.setUTCDate(d.getUTCDate() + 1);
   }
+
+  // 2. Le week-end ensuite, sur la date éventuellement décalée ci-dessus.
+  //    Traiter les jours avant les heures ferait perdre un jour ouvré :
+  //    un samedi soir sautait le lundi pour atterrir le mardi.
+  while (d.getUTCDay() === 6 || d.getUTCDay() === 0) {
+    d.setUTCDate(d.getUTCDate() + 1);
+    d.setUTCHours(7, 30, 0, 0);
+  }
+
   return d;
 }
 
-export { SUPABASE_URL, INBOUND_DOMAIN, SHARED_SENDING_DOMAIN };
+export { SUPABASE_URL, INBOUND_DOMAIN, SHARED_SENDING_DOMAIN, MODE_TEST };

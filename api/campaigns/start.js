@@ -15,7 +15,13 @@
    Corps attendu : { sequenceId, prospectId?, email?, demarrage? }
    ================================================================ */
 
-import { requireUser, sbFetch, joursDepuisLancement, prochainCreneauOuvre } from '../_lib.js';
+import {
+  requireUser,
+  sbFetch,
+  joursDepuisLancement,
+  prochainCreneauOuvre,
+  destinataireInterditEnTest,
+} from '../_lib.js';
 
 // Garde-fou simple : on ne cherche pas à valider parfaitement une
 // adresse (impossible), juste à écarter les saisies manifestement
@@ -108,18 +114,28 @@ export default async function handler(req, res) {
 
     // --- Identité d'envoi : créée à la volée au premier lancement, en
     // mode mutualisé, pour que l'utilisateur puisse partir sans config DNS.
-    const identites = await sbFetch(`sending_identities?user_id=eq.${user.id}&select=user_id`);
-    if (!identites || identites.length === 0) {
+    let identite = (await sbFetch(`sending_identities?user_id=eq.${user.id}&select=*`))?.[0];
+    if (!identite) {
       const profils = await sbFetch(`profiles?id=eq.${user.id}&select=nom,email`);
-      await sbFetch('sending_identities', {
+      identite = (await sbFetch('sending_identities', {
         method: 'POST',
+        prefer: 'return=representation',
         body: {
           user_id: user.id,
           mode: 'shared',
           from_name: profils?.[0]?.nom || null,
           reply_to_real: profils?.[0]?.email || user.email || null,
         },
-      });
+      }))?.[0];
+    }
+
+    // En mode test (aucun domaine d'envoi configuré), on ne peut écrire
+    // qu'à soi-même. Le refus intervient ici, avant toute programmation :
+    // planifier des messages qui échoueront un par un dans le cron serait
+    // le pire des deux mondes.
+    const refusTest = destinataireInterditEnTest(destinataire, identite);
+    if (refusTest) {
+      return res.status(403).json({ error: refusTest });
     }
 
     // --- La campagne. reply_token est généré par la base (valeur par
