@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pitchly — Campagnes</title>
+<meta name="theme-color" content="#16292C">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230F1D1F'/%3E%3Ccircle cx='32' cy='32' r='14' fill='%23D6A343'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,400;0,600;1,500;1,600&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="auth.js"></script>
+
+<nav>
+  <div class="wrap">
+    <a class="logo" href="index.html"><span class="dot"></span>pitchly</a>
+    <div class="nav-tabs">
+      <a href="dashboard.html">dashboard</a>
+      <a href="app.html">scripts</a>
+      <a href="sequences.html">séquences</a>
+      <a href="objections.html">objections</a>
+      <a href="prospects.html">prospects</a>
+      <a href="campagnes.html" class="active">campagnes</a>
+    </div>
+    <div class="nav-right">
+      <div class="profile-pill" id="profilePill">
+        chargement du profil…
+      </div>
+      <a class="icon-btn" href="compte.html" title="mon compte">⚙</a>
+      <button class="icon-btn hidden" id="logoutBtn" onclick="handleLogout()" title="déconnexion">⏻</button>
+    </div>
+  </div>
+</nav>
+
+<div class="page-loader" id="pageLoader"><span class="loader-ring"></span>chargement…</div>
+
+<main id="mainCampagnes" class="hidden">
+  <div class="wrap">
+
+    <header class="page-head">
+      <p class="page-kicker">campagnes</p>
+      <h1>Ce qui te fait <em>vraiment répondre.</em></h1>
+      <p class="dashboard-stats" id="headStats">—</p>
+    </header>
+
+    <!-- ============ CE QUI FONCTIONNE ============
+         La seule chose de ce produit qu'un chatbot ne peut pas
+         fabriquer : des taux de réponse mesurés sur de vrais envois. -->
+    <div class="card">
+      <div class="card-label"><span>ce qui obtient des réponses</span></div>
+      <div id="statsList">
+        <!-- rempli par campagnes.js -->
+      </div>
+    </div>
+
+    <!-- ============ CAMPAGNES ============ -->
+    <div class="card">
+      <div class="card-label"><span>mes campagnes</span></div>
+      <div class="filters" id="campagneFilters">
+        <span class="filter active" data-filter="tous">toutes</span>
+        <span class="filter" data-filter="active">en cours</span>
+        <span class="filter" data-filter="replied">ont répondu</span>
+        <span class="filter" data-filter="done">terminées</span>
+        <span class="filter" data-filter="stopped">arrêtées</span>
+      </div>
+      <div id="campagnesList">
+        <!-- rempli par campagnes.js -->
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<!-- ============ MODALE DÉTAIL CAMPAGNE ============ -->
+<div class="modal-overlay hidden" id="campagneModal" data-dismissable>
+  <div class="modal modal-wide">
+    <div class="modal-head">
+      <strong id="campagneModalName">campagne</strong>
+      <button class="icon-btn" onclick="closeCampagneModal()" title="fermer">✕</button>
+    </div>
+    <span class="tag" id="campagneModalMeta"></span>
+    <div class="seq-timeline" id="campagneModalTimeline"></div>
+    <div class="modal-actions">
+      <button class="icon-btn danger" id="campagneStopBtn" onclick="handleStopCampagne(currentCampagneId, event)" title="arrêter les envois">■ arrêter les envois restants</button>
+    </div>
+  </div>
+</div>
+
+<script src="campagnes.js"></script>
+</body>
+</html>

@@ -439,3 +439,43 @@ a:focus-visible, button:focus-visible{outline:2px solid var(--gold);outline-offs
 @media (prefers-reduced-motion: reduce){
   *{animation-duration:.001ms!important;animation-delay:0s!important;transition-duration:.001ms!important;}
 }
+
+/* ============================================
+   LANCEMENT D'ENVOI (modale de sequences.html)
+   Le récapitulatif est volontairement dense et daté : c'est le dernier
+   écran avant que de vrais emails partent, il doit se lire d'un coup.
+   ============================================ */
+.launch-recap{border:1px solid rgba(22,41,44,.12);border-radius:14px;padding:6px 14px;margin:14px 0 10px;}
+.launch-recap-row{display:flex;align-items:baseline;gap:12px;padding:8px 0;border-bottom:1px solid rgba(22,41,44,.07);}
+.launch-recap-row:last-child{border-bottom:none;}
+.launch-recap-date{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.03em;color:var(--gold-dim);white-space:nowrap;flex-shrink:0;min-width:92px;}
+.launch-recap-obj{font-size:13px;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.launch-note{font-size:12px;color:var(--text-muted);line-height:1.65;margin-bottom:16px;}
+
+/* ============================================
+   CAMPAGNES — statuts et taux de réponse
+   ============================================ */
+.statut-tag.statut-active{background:rgba(214,163,67,.16);color:var(--gold-dim);}
+.statut-tag.statut-replied{background:rgba(79,109,92,.16);color:var(--moss);}
+.statut-tag.statut-done{background:rgba(22,41,44,.09);color:var(--text-muted);}
+.statut-tag.statut-stopped{background:rgba(181,87,62,.12);color:var(--rust);}
+
+/* Étape non envoyée : la pastille reste en creux, pour qu'on distingue
+   d'un coup d'œil ce qui est parti de ce qui est encore programmé. */
+.seq-step-dot.etape-inactive{background:rgba(22,41,44,.10);color:var(--text-muted);}
+
+.stat-global{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;padding-bottom:18px;margin-bottom:18px;border-bottom:1px solid rgba(22,41,44,.10);}
+.stat-global-chiffre{font-family:'Fraunces',serif;font-size:38px;font-weight:600;color:var(--gold-dim);line-height:1;}
+.stat-global-label{font-size:13.5px;color:var(--text-muted);}
+
+.stat-row{margin-bottom:16px;}
+.stat-row:last-child{margin-bottom:0;}
+.stat-row-head{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:6px;}
+.stat-row-nom{font-size:14px;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.stat-row-chiffre{font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:500;color:var(--moss);flex-shrink:0;}
+/* Sous le seuil de fiabilité, le chiffre s'affiche en gris : il est
+   affiché mais ne doit pas être lu comme un résultat. */
+.stat-row-chiffre.incertain{color:var(--text-muted);}
+.stat-bar{height:5px;border-radius:100px;background:rgba(22,41,44,.09);overflow:hidden;}
+.stat-bar span{display:block;height:100%;border-radius:100px;background:var(--moss);transition:width .5s var(--ease);}
+.stat-row-detail{display:block;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text-muted);margin-top:5px;}

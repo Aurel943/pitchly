@@ -337,6 +337,7 @@ async function renderSavedList() {
       <div class="saved-item-head">
         <span class="name">${esc(s.nom || (OBJECTIF_LABELS[s.objectif] || s.objectif))}</span>
         <div class="saved-item-actions">
+          ${s.canal === 'email' ? `<button class="icon-btn" onclick="event.stopPropagation(); openLaunchModal('${s.id}')" title="lancer l'envoi">▶</button>` : ''}
           <button class="icon-btn ${s.outcome === 'worked' ? 'fb-on-worked' : ''}" onclick="event.stopPropagation(); handleSetSequenceOutcome('${s.id}', 'worked')" title="a fonctionné">👍</button>
           <button class="icon-btn ${s.outcome === 'failed' ? 'fb-on-failed' : ''}" onclick="event.stopPropagation(); handleSetSequenceOutcome('${s.id}', 'failed')" title="n'a pas fonctionné">👎</button>
           <button class="icon-btn" onclick="event.stopPropagation(); handleDeleteSequence('${s.id}', event)" title="supprimer">🗑</button>
@@ -388,6 +389,9 @@ function openSequenceDetail(id) {
     `${OBJECTIF_LABELS[seq.objectif] || seq.objectif} · ${seq.canal} · ${formatDateTime(seq.created_at)}`;
   renderTimeline(document.getElementById('sequenceModalTimeline'), seq.etapes || [], seq.canal);
   renderSequenceOutcomeButtons(seq);
+  // L'envoi automatique n'existe que pour l'email : une séquence
+  // LinkedIn se copie à la main, le bouton n'aurait rien à déclencher.
+  document.getElementById('sequenceModalLaunchBtn').classList.toggle('hidden', seq.canal !== 'email');
   document.getElementById('sequenceModal').classList.remove('hidden');
 }
 
@@ -465,6 +469,167 @@ async function handleDeleteSequence(id, ev) {
   if (currentSequenceId === id) closeSequenceModal();
   showToast('Séquence supprimée.', 'info');
   await renderSavedList();
+}
+
+
+/* ================================================================
+   LANCEMENT D'ENVOI — de la séquence écrite à la séquence programmée
+
+   Jusqu'ici tout se passait dans le navigateur : générer, sauvegarder,
+   copier. À partir d'ici, de vrais emails partent chez de vraies
+   personnes. D'où deux choix :
+
+   - l'appel passe par /api/campaigns/start (et pas par supabaseClient
+     en direct) : la planification et les refus (prospect désinscrit,
+     campagne déjà en cours) doivent être décidés côté serveur, où le
+     client ne peut pas les contourner ;
+   - le calendrier complet est affiché AVANT confirmation. Personne ne
+     doit découvrir après coup qu'il a programmé 4 emails.
+   ================================================================ */
+
+let currentLaunchSequenceId = null;
+
+// Aperçu du calendrier, calculé côté client à titre indicatif : le
+// serveur refait le calcul (et recale sur les créneaux ouvrés), c'est
+// lui qui fait foi. Ici on cherche seulement à rendre lisible ce qui
+// va se passer.
+function renderLaunchRecap(seq, decalageJours) {
+  const etapes = Array.isArray(seq.etapes) ? seq.etapes : [];
+  const base = new Date();
+  base.setDate(base.getDate() + (decalageJours || 0));
+
+  document.getElementById('launchRecap').innerHTML = etapes.map((e, i) => {
+    const jours = parseInt(String(e.delai || '').match(/\d+/)?.[0] ?? i * 3, 10);
+    const date = new Date(base);
+    date.setDate(date.getDate() + jours);
+    const libelle = date.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' });
+
+    return `
+      <div class="launch-recap-row">
+        <span class="launch-recap-date">${libelle}</span>
+        <span class="launch-recap-obj">${esc(e.objet || e.titre || `message ${i + 1}`)}</span>
+      </div>`;
+  }).join('');
+}
+
+function openLaunchModal(id) {
+  const seq = lastSavedSequences.find(s => s.id === id);
+  if (!seq) return;
+
+  if (seq.canal !== 'email') {
+    showToast("Seules les séquences email peuvent être envoyées automatiquement. Une séquence LinkedIn se copie à la main.", 'failed');
+    return;
+  }
+
+  currentLaunchSequenceId = id;
+  const nbEtapes = Array.isArray(seq.etapes) ? seq.etapes.length : 0;
+  document.getElementById('launchModalMeta').textContent =
+    `${seq.nom || OBJECTIF_LABELS[seq.objectif] || seq.objectif} · ${nbEtapes} messages`;
+
+  // Les prospects désinscrits ne sont pas proposés : le serveur les
+  // refuserait de toute façon, autant ne pas les montrer.
+  const select = document.getElementById('launchProspectSelect');
+  select.innerHTML = '<option value="">— choisir un prospect —</option>' +
+    lastProspectsForSelect
+      .filter(p => !p.opted_out_at)
+      .map(p => `<option value="${p.id}">${esc(p.nom)}${p.entreprise ? ' · ' + esc(p.entreprise) : ''}</option>`)
+      .join('');
+
+  document.getElementById('launchEmailInput').value = '';
+  document.getElementById('launchStartSelect').value = '';
+  renderLaunchRecap(seq, 0);
+
+  document.getElementById('launchConfirmBtn').disabled = false;
+  document.getElementById('launchConfirmBtn').textContent = '▶ programmer l\'envoi';
+  document.getElementById('launchModal').classList.remove('hidden');
+}
+
+function closeLaunchModal() {
+  document.getElementById('launchModal').classList.add('hidden');
+  currentLaunchSequenceId = null;
+}
+
+// Pré-remplit l'adresse quand la fiche prospect en contient déjà une —
+// l'utilisateur ne doit ressaisir un email qu'une seule fois.
+function handleLaunchProspectChange() {
+  const id = document.getElementById('launchProspectSelect').value;
+  const prospect = lastProspectsForSelect.find(p => p.id === id);
+  const champ = document.getElementById('launchEmailInput');
+  if (prospect?.email) champ.value = prospect.email;
+}
+
+document.getElementById('launchStartSelect').addEventListener('change', (e) => {
+  const seq = lastSavedSequences.find(s => s.id === currentLaunchSequenceId);
+  if (seq) renderLaunchRecap(seq, parseInt(e.target.value || '0', 10));
+});
+
+async function handleLaunchCampaign() {
+  if (!currentLaunchSequenceId) return;
+
+  const prospectId = document.getElementById('launchProspectSelect').value;
+  const email = document.getElementById('launchEmailInput').value.trim();
+  const decalage = parseInt(document.getElementById('launchStartSelect').value || '0', 10);
+
+  if (!email) {
+    showToast("Renseigne l'email du destinataire.", 'failed');
+    return;
+  }
+
+  const btn = document.getElementById('launchConfirmBtn');
+  btn.disabled = true;
+  btn.textContent = 'programmation…';
+
+  // Le token de session authentifie l'appel côté serveur : les routes
+  // d'envoi n'acceptent rien d'anonyme.
+  const session = await getSession();
+  if (!session) {
+    showToast('Session expirée, reconnecte-toi.', 'failed');
+    btn.disabled = false;
+    btn.textContent = '▶ programmer l\'envoi';
+    return;
+  }
+
+  let demarrage = null;
+  if (decalage > 0) {
+    const d = new Date();
+    d.setDate(d.getDate() + decalage);
+    demarrage = d.toISOString();
+  }
+
+  try {
+    const res = await fetch('/api/campaigns/start', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({
+        sequenceId: currentLaunchSequenceId,
+        prospectId: prospectId || null,
+        email,
+        demarrage,
+      }),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      showToast(data.error || "Impossible de programmer l'envoi.", 'failed');
+      btn.disabled = false;
+      btn.textContent = '▶ programmer l\'envoi';
+      return;
+    }
+
+    closeLaunchModal();
+    closeSequenceModal();
+    showToast(`✓ Séquence programmée sur ${email} — suis-la dans « campagnes ».`, 'worked');
+    await populateProspectSelect();   // l'email vient peut-être d'être enregistré sur la fiche
+
+  } catch {
+    showToast('Erreur réseau, réessaie dans un instant.', 'failed');
+    btn.disabled = false;
+    btn.textContent = '▶ programmer l\'envoi';
+  }
 }
 
 

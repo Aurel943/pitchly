@@ -24,6 +24,7 @@
       <a href="sequences.html" class="active">séquences</a>
       <a href="objections.html">objections</a>
       <a href="prospects.html">prospects</a>
+      <a href="campagnes.html">campagnes</a>
     </div>
     <div class="nav-right">
       <div class="profile-pill" id="profilePill">
@@ -162,10 +163,62 @@
     <span class="tag" id="sequenceModalMeta"></span>
     <div class="seq-timeline" id="sequenceModalTimeline"></div>
     <div class="modal-actions">
+      <button class="icon-btn" id="sequenceModalLaunchBtn" onclick="openLaunchModal(currentSequenceId)" title="envoyer cette séquence">▶ lancer l'envoi</button>
       <button class="icon-btn" onclick="handleCopyAllModal()" title="tout copier">⧉ tout copier</button>
       <button class="icon-btn" id="sequenceModalWorkedBtn" onclick="handleSetSequenceOutcome(currentSequenceId, 'worked')" title="a fonctionné">👍 a fonctionné</button>
       <button class="icon-btn" id="sequenceModalFailedBtn" onclick="handleSetSequenceOutcome(currentSequenceId, 'failed')" title="n'a pas fonctionné">👎 n'a pas fonctionné</button>
       <button class="icon-btn danger" onclick="handleDeleteSequence(currentSequenceId, event)" title="supprimer">🗑 supprimer</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ MODALE LANCEMENT D'ENVOI ============
+     Dernier écran avant que de vrais emails partent chez de vraies
+     personnes : on y montre le destinataire et le calendrier complet
+     des envois, et rien ne part sans un clic explicite ici. -->
+<div class="modal-overlay hidden" id="launchModal" data-dismissable>
+  <div class="modal">
+    <div class="modal-head">
+      <strong>lancer l'envoi</strong>
+      <button class="icon-btn" onclick="closeLaunchModal()" title="fermer">✕</button>
+    </div>
+
+    <span class="tag" id="launchModalMeta"></span>
+
+    <div class="field">
+      <label>prospect</label>
+      <select id="launchProspectSelect" onchange="handleLaunchProspectChange()">
+        <option value="">— choisir un prospect —</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label>email du destinataire</label>
+      <input type="email" id="launchEmailInput" placeholder="prenom@entreprise.fr">
+    </div>
+
+    <div class="field">
+      <label>premier envoi</label>
+      <select id="launchStartSelect">
+        <option value="">dès que possible (prochain créneau ouvré)</option>
+        <option value="1">demain</option>
+        <option value="3">dans 3 jours</option>
+        <option value="7">dans 7 jours</option>
+      </select>
+    </div>
+
+    <div class="launch-recap" id="launchRecap"></div>
+
+    <p class="launch-note">
+      Les relances s'arrêtent automatiquement dès que le prospect répond.
+      Chaque message porte une mention de retrait : une réponse « STOP » le
+      désinscrit définitivement.
+    </p>
+
+    <div class="modal-actions">
+      <button class="btn-primary" id="launchConfirmBtn" onclick="handleLaunchCampaign()">
+        ▶ programmer l'envoi
+      </button>
     </div>
   </div>
 </div>
