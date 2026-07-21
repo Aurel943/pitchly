@@ -19,6 +19,20 @@
 
    Protégée par CRON_SECRET : sans ça, n'importe qui peut déclencher
    la vidange de la file d'envoi à volonté.
+
+   FRÉQUENCE — vercel.json programme "35 7 * * *", soit une fois par
+   jour à 7h35 UTC (9h35 à Paris en été), et non toutes les heures.
+   Deux raisons :
+     - le plan Hobby de Vercel n'autorise qu'un déclenchement quotidien,
+       et un cron plus fréquent fait ÉCHOUER le déploiement entier (il
+       ne se dégrade pas silencieusement) ;
+     - l'heure n'est pas arbitraire : prochainCreneauOuvre() cale toutes
+       les étapes à 7h30 UTC, ce passage juste après les ramasse donc
+       toutes en un seul tour.
+   Conséquence à connaître : une étape programmée après 7h35 attend le
+   lendemain. Passer en plan Pro et revenir à un cron horaire lisse ça.
+   En attendant, l'envoi se déclenche aussi à la main :
+     curl -H "Authorization: Bearer <CRON_SECRET>" https://<site>/api/cron/dispatch
    ================================================================ */
 
 import { sbFetch, sendEmail, fromAddress, replyAddress, destinataireInterditEnTest } from '../_lib.js';
