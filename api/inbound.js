@@ -22,7 +22,7 @@
    ================================================================ */
 
 import crypto from 'node:crypto';
-import { sbFetch, sendEmail, fromAddress, INBOUND_DOMAIN } from './_lib.js';
+import { sbFetch, sendEmail, fromAddress, fetchReceivedEmail, INBOUND_DOMAIN } from './_lib.js';
 
 // Le corps brut est nécessaire tel quel : la signature porte sur les
 // octets reçus, pas sur le JSON re-sérialisé (l'ordre des clés et les
@@ -71,15 +71,21 @@ function signatureValide(corps, headers) {
 }
 
 // Retrouve le token de campagne dans les destinataires du message.
-// Le prospect peut répondre à plusieurs adresses à la fois ; on cherche
-// celle qui porte notre motif reply+<token>@<domaine inbound>.
-function extraireToken(destinataires) {
-  const liste = Array.isArray(destinataires) ? destinataires : [destinataires];
-  const motif = new RegExp(`reply\\+([a-z0-9]+)@${INBOUND_DOMAIN.replace(/\./g, '\\.')}`, 'i');
+// Le prospect peut répondre à plusieurs adresses à la fois (répondre à
+// tous, copie…) : on cherche celle qui porte notre motif.
+//
+// Les deux formes sont acceptées — "r<token>@" (celle qu'on émet) et
+// "reply+<token>@" (sous-adressage) — pour rester tolérant au routage
+// du domaine de réception. Le token fait exactement 18 caractères hex
+// (9 octets côté base), ce qui rend le motif non ambigu.
+function extraireToken(...sources) {
+  const liste = sources.flat().filter(Boolean);
+  const domaine = INBOUND_DOMAIN.replace(/\./g, '\\.');
+  const motif = new RegExp(`(?:reply\\+|r)([a-f0-9]{18})@${domaine}`, 'i');
 
   for (const brut of liste) {
     const trouve = String(brut || '').match(motif);
-    if (trouve) return trouve[1];
+    if (trouve) return trouve[1].toLowerCase();
   }
   return null;
 }
@@ -122,7 +128,11 @@ export default async function handler(req, res) {
   }
 
   const donnees = evenement.data || {};
-  const token = extraireToken(donnees.to);
+
+  // received_for porte l'adresse réellement visée par le routage (clause
+  // "for" des en-têtes Received) : c'est la source la plus fiable quand
+  // le prospect a répondu à plusieurs destinataires. "to" sert de repli.
+  const token = extraireToken(donnees.received_for, donnees.to, donnees.cc);
   if (!token) {
     // Rien à rattacher : on acquitte quand même, sinon Resend réessaiera
     // indéfiniment un message qui ne nous concerne pas.
@@ -138,17 +148,36 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: true, ignore: 'campagne introuvable' });
     }
 
-    const texte = donnees.text || donnees.html || '';
-    const desinscription = estDesinscription(texte);
-    const maintenant = new Date().toISOString();
-
     // Resend réessaie un webhook tant qu'il n'a pas reçu un 2xx, et le
     // prospect peut aussi répondre plusieurs fois. Seule la PREMIÈRE
     // réponse doit produire un événement : sinon un prospect bavard
     // gonflerait artificiellement le taux de réponse de l'accroche.
+    // Ce contrôle passe avant la récupération du corps pour ne pas
+    // appeler l'API Resend inutilement sur un rejeu.
     if (campagne.statut !== 'active') {
       return res.status(200).json({ ok: true, ignore: 'campagne déjà close' });
     }
+
+    // Le corps ne figure pas dans le webhook : il faut aller le chercher.
+    // En cas d'échec on continue quand même avec un corps vide — couper
+    // les relances et enregistrer la réponse comptent davantage que
+    // disposer du texte, qui reste de toute façon dans la boîte du
+    // prospect.
+    let recu = null;
+    try {
+      recu = await fetchReceivedEmail(donnees.email_id);
+    } catch (err) {
+      console.error('Corps du message inaccessible :', err.message);
+    }
+
+    // html_format peut renvoyer du HTML sans version texte : on le
+    // dégrossit pour la détection du STOP et pour le relais.
+    const texte = recu?.text
+      || String(recu?.html || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+
+    const expediteur = recu?.from || donnees.from || null;
+    const desinscription = estDesinscription(texte);
+    const maintenant = new Date().toISOString();
 
     // 1. Couper les relances à venir. En premier, avant tout le reste :
     // si la suite échoue, au moins on n'aura pas relancé quelqu'un qui
@@ -175,8 +204,8 @@ export default async function handler(req, res) {
         campaign_id: campagne.id,
         type: desinscription ? 'complaint' : 'replied',
         payload: {
-          from: donnees.from || null,
-          subject: donnees.subject || null,
+          from: expediteur,
+          subject: recu?.subject || donnees.subject || null,
           extrait: String(texte).slice(0, 500),
         },
       },
@@ -208,10 +237,10 @@ export default async function handler(req, res) {
           to: identite.reply_to_real,
           // Le vendeur répond directement au prospect depuis sa boîte :
           // la conversation sort de Pitchly, ce qui est le but.
-          replyTo: donnees.from,
-          subject: `Réponse de ${donnees.from || 'votre prospect'} — ${campagne.nom || 'campagne'}`,
+          replyTo: expediteur,
+          subject: `Réponse de ${expediteur || 'votre prospect'} — ${campagne.nom || 'campagne'}`,
           text:
-            `${donnees.from || 'Un prospect'} vient de répondre à ta séquence.\n` +
+            `${expediteur || 'Un prospect'} vient de répondre à ta séquence.\n` +
             `Les relances programmées ont été annulées automatiquement.\n\n` +
             `--- son message ---\n\n${texte}`,
         });

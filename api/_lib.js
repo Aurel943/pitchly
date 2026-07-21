@@ -100,8 +100,35 @@ export async function sbFetch(path, { method = 'GET', body, prefer } = {}) {
 // dispositif : le prospect répond à cette adresse, Resend nous pousse
 // le message en webhook, et le token nous dit de quelle campagne il
 // s'agit — sans jamais accéder à la boîte mail du vendeur.
+//
+// Le token occupe TOUTE la partie locale (préfixée d'un "r" pour ne pas
+// commencer par un chiffre) au lieu d'un sous-adressage "reply+token@" :
+// le plus-addressing dépend du routage du domaine de réception et n'est
+// pas garanti, alors qu'une adresse pleine fonctionne partout où le
+// domaine accepte le courrier.
 export function replyAddress(token) {
-  return `reply+${token}@${INBOUND_DOMAIN}`;
+  return `r${token}@${INBOUND_DOMAIN}`;
+}
+
+// Récupère le contenu complet d'un email reçu.
+//
+// Indispensable : le webhook email.received ne transporte QUE des
+// métadonnées (expéditeur, destinataires, sujet, pièces jointes) — le
+// corps du message n'y est pas. Sans cet appel, la détection du STOP
+// s'exécuterait sur une chaîne vide et le relais au vendeur arriverait
+// sans le message du prospect.
+export async function fetchReceivedEmail(id) {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) throw new Error('RESEND_API_KEY manquante');
+
+  const res = await fetch(`https://api.resend.com/emails/receiving/${id}`, {
+    headers: { Authorization: `Bearer ${apiKey}` },
+  });
+
+  if (!res.ok) {
+    throw new Error(`Resend receiving ${res.status}`);
+  }
+  return res.json();
 }
 
 // Construit l'expéditeur à partir de l'identité d'envoi de l'utilisateur.
