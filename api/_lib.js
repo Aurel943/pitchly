@@ -39,10 +39,16 @@ const SHARED_SENDING_DOMAIN = process.env.SHARED_SENDING_DOMAIN || null;
 const MODE_TEST = !SHARED_SENDING_DOMAIN;
 const EXPEDITEUR_TEST = 'onboarding@resend.dev';
 
-// Domaine qui reçoit les réponses des prospects (MX pointés vers Resend
-// inbound). En test, c'est le domaine managé <quelquechose>.resend.app
-// fourni par Resend, qui ne demande aucun DNS.
-const INBOUND_DOMAIN = process.env.INBOUND_DOMAIN || 'exemple.resend.app';
+// Domaine qui reçoit les réponses des prospects. En production ce sera
+// un sous-domaine à nous (MX pointés vers Resend) ; en test c'est le
+// domaine managé fourni par Resend, qui ne demande aucun DNS et accepte
+// n'importe quelle adresse (catch-all) — d'où le token en partie locale.
+//
+// Le repli n'est pas un exemple mais le vrai domaine de réception du
+// compte : une variable oubliée ferait fabriquer des adresses de
+// réponse inexistantes, et les réponses des prospects partiraient dans
+// le vide sans qu'aucune erreur ne le signale.
+const INBOUND_DOMAIN = process.env.INBOUND_DOMAIN || 'estiejoraa.resend.app';
 
 /* ---------------------------------------------------------------
    Identité de l'appelant
