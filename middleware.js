@@ -7,6 +7,11 @@
    Le nom d'utilisateur n'est pas vérifié, seul le mot de passe compte (mdp : aurel943).
    ================================================================ */
 
+// ATTENTION — cet en-tête "authorization" est une ressource partagée :
+// tout fetch() du front qui le remplit (par ex. avec un jeton Supabase)
+// écrase les identifiants Basic rejoués par le navigateur, et l'utilisateur
+// se voit redemander le mot de passe en boucle. Les appels authentifiés de
+// l'app passent donc par "X-Pitchly-Token" (voir requireUser dans api/_lib.js).
 export default function middleware(request) {
   const auth = request.headers.get('authorization');
 

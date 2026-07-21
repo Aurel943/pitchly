@@ -54,16 +54,28 @@ const INBOUND_DOMAIN = process.env.INBOUND_DOMAIN || 'estiejoraa.resend.app';
    Identité de l'appelant
    --------------------------------------------------------------- */
 
-// Vérifie le JWT Supabase envoyé par le front dans "Authorization:
-// Bearer <access_token>". On ne décode pas le token nous-mêmes (il
-// faudrait vérifier la signature) : on demande à Supabase qui il est,
-// ce qui valide signature ET expiration ET révocation d'un coup.
-// Renvoie l'objet user, ou null si le token est absent/invalide.
+// Vérifie le JWT Supabase envoyé par le front.
+//
+// Le jeton voyage dans "X-Pitchly-Token" et NON dans "Authorization" :
+// tout le site est derrière un Basic Auth (voir middleware.js), qui
+// utilise déjà cet en-tête. Un fetch() qui pose "Authorization: Bearer"
+// écrase les identifiants Basic que le navigateur rejoue tout seul ; le
+// middleware ne reconnaît plus rien, répond 401 avec WWW-Authenticate,
+// et le navigateur redemande le mot de passe en boucle.
+//
+// Le repli sur "Authorization: Bearer" reste accepté pour les appels
+// hors navigateur (curl, tests), qui ne traversent pas ce conflit.
+//
+// On ne décode pas le jeton nous-mêmes (il faudrait vérifier la
+// signature) : on demande à Supabase qui il est, ce qui valide
+// signature ET expiration ET révocation d'un coup.
+// Renvoie l'objet user, ou null si le jeton est absent/invalide.
 export async function requireUser(req) {
   const header = req.headers.authorization || req.headers.Authorization || '';
-  if (!header.startsWith('Bearer ')) return null;
+  const token = req.headers['x-pitchly-token']
+    || (header.startsWith('Bearer ') ? header.slice(7) : null);
 
-  const token = header.slice(7);
+  if (!token) return null;
 
   try {
     const res = await fetch(`${SUPABASE_URL}/auth/v1/user`, {

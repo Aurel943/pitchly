@@ -601,7 +601,9 @@ async function handleLaunchCampaign() {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${session.access_token}`,
+        // Surtout pas "Authorization" : le Basic Auth du site occupe déjà
+        // cet en-tête, l'écraser fait redemander le mot de passe en boucle.
+        'X-Pitchly-Token': session.access_token,
       },
       body: JSON.stringify({
         sequenceId: currentLaunchSequenceId,
