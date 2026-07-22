@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Créer un compte — Pitchly</title>
+<meta name="description" content="Crée ton compte Pitchly : 5 générations et une campagne d'essai offertes, sans carte bancaire.">
+<meta name="theme-color" content="#16292C">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230F1D1F'/%3E%3Ccircle cx='32' cy='32' r='14' fill='%23D6A343'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,600;1,500&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="auth.css">
+</head>
+<body data-auth-mode="signup">
+
+<div class="auth-layout">
+
+  <!-- ============ FORMULAIRE ============ -->
+  <div class="auth-form-side">
+    <a class="auth-brand" href="index.html"><span class="dot"></span>pitchly</a>
+
+    <div class="auth-body">
+      <div class="auth-inner">
+
+        <!-- État 1 : le formulaire -->
+        <div id="authFormBlock">
+          <p class="auth-kicker">créer un compte</p>
+          <h1>Ta première séquence <em>part aujourd'hui.</em></h1>
+          <p class="auth-lead">Deux minutes pour créer ton compte, et tu peux lancer une vraie campagne. Sans carte bancaire.</p>
+
+          <button class="btn-google" type="button" onclick="handleGoogle()">
+            <svg viewBox="0 0 48 48" aria-hidden="true">
+              <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+              <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+              <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+              <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+            </svg>
+            Continuer avec Google
+          </button>
+
+          <div class="auth-sep"><span>ou par email</span></div>
+
+          <form id="authForm" novalidate>
+            <div class="auth-field">
+              <label for="emailInput">Adresse email</label>
+              <input type="email" id="emailInput" name="email"
+                     placeholder="toi@exemple.com"
+                     autocomplete="email" inputmode="email"
+                     autocapitalize="off" spellcheck="false"
+                     aria-describedby="emailError" aria-invalid="false">
+              <p class="field-error" id="emailError" role="alert"></p>
+            </div>
+
+            <button class="btn-submit" type="submit" id="submitBtn">Créer mon compte</button>
+          </form>
+
+          <p class="auth-legal">Aucun mot de passe à choisir : tu reçois un lien qui crée ton compte et te connecte. Utilise l'adresse sur laquelle tu veux recevoir les réponses de tes prospects.</p>
+
+          <p class="auth-switch">
+            Tu as déjà un compte ? <a href="connexion.html">Se connecter</a>
+          </p>
+        </div>
+
+        <!-- État 2 : lien envoyé -->
+        <div id="authSentBlock" class="auth-sent hidden">
+          <div class="sent-icon">✉</div>
+          <p class="auth-kicker">lien envoyé</p>
+          <h1>Regarde ta <em>boîte mail.</em></h1>
+          <p class="auth-lead">On vient d'envoyer ton lien de création de compte à&nbsp;:</p>
+          <p class="sent-address" id="sentAddress"></p>
+          <p class="sent-hint">Clique dessus depuis cet appareil et ton compte est créé. Le lien expire au bout d'une heure.</p>
+          <p class="sent-hint">Rien reçu au bout d'une minute ? Regarde dans les indésirables.</p>
+
+          <p class="auth-switch">
+            <button class="btn-text" type="button" id="resendBtn" onclick="handleResend()">renvoyer le lien</button>
+            &nbsp;·&nbsp;
+            <button class="btn-text" type="button" onclick="revenirAuFormulaire()">changer d'adresse</button>
+          </p>
+        </div>
+
+      </div>
+    </div>
+
+    <a class="auth-back" href="index.html">← retour à l'accueil</a>
+  </div>
+
+  <!-- ============ PREUVE ============
+       Ce que contient le plan gratuit, énoncé sans promesse gonflée :
+       la page d'inscription est le pire endroit pour surpromettre. -->
+  <div class="auth-proof-side">
+    <div class="proof-glow"></div>
+
+    <h2 class="proof-title">Ce que tu peux faire <em>dès aujourd'hui.</em></h2>
+    <p class="proof-sub">Le plan Découverte existe pour que tu voies le mécanisme tourner de bout en bout avant de payer quoi que ce soit.</p>
+
+    <div class="proof-card">
+      <div class="proof-card-head">
+        <strong>Plan Découverte</strong>
+        <span class="proof-badge">0 € — sans CB</span>
+      </div>
+      <div class="proof-steps">
+        <div class="pstep">
+          <span class="node"></span>
+          <span class="when">étape 1</span>
+          <span class="what">Ajoute un prospect et son site</span>
+          <span class="pstate on">inclus</span>
+        </div>
+        <div class="pstep">
+          <span class="node"></span>
+          <span class="when">étape 2</span>
+          <span class="what">Trouve pourquoi lui écrire</span>
+          <span class="pstate on">inclus</span>
+        </div>
+        <div class="pstep">
+          <span class="node"></span>
+          <span class="when">étape 3</span>
+          <span class="what">Lance une campagne d'essai</span>
+          <span class="pstate on">inclus</span>
+        </div>
+      </div>
+    </div>
+
+    <ul class="proof-points">
+      <li>5 générations par mois, remises à zéro le 1er.</li>
+      <li>Tes prospects et leur contexte, conservés d'une session à l'autre.</li>
+      <li>Aucune carte bancaire demandée, et rien ne se déclenche tout seul.</li>
+    </ul>
+  </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="auth.js"></script>
+<script src="auth-pages.js"></script>
+</body>
+</html>

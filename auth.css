@@ -1,0 +1,194 @@
+/* ================================================================
+   PITCHLY — auth.css
+   Feuille dédiée aux deux pages d'entrée : connexion.html et
+   inscription.html.
+
+   Pourquoi une feuille à part plutôt que style.css : ces pages n'ont
+   ni nav, ni cartes, ni modales. Elles partagent le vocabulaire visuel
+   (encre/papier/or, Fraunces/Inter/Plex Mono) et rien d'autre — les
+   faire dépendre du CSS de l'app obligerait à neutraliser la moitié de
+   ses règles.
+   ================================================================ */
+
+:root{
+  --ink:#16292C;
+  --ink-deep:#0F1D1F;
+  --paper:#F7F2E7;
+  --gold:#D6A343;
+  --gold-dim:#B4863A;
+  --rust:#B5573E;
+  --moss:#4F6D5C;
+  --text-muted:#5B6E70;
+  --text-on-ink:#D9E0DE;
+  --text-on-ink-dim:#8FA3A1;
+  --ease:cubic-bezier(.22,.9,.24,1);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;}
+body{
+  font-family:'Inter',sans-serif;
+  background:var(--ink);
+  color:var(--ink);
+  line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3{font-family:'Fraunces',serif;font-weight:600;letter-spacing:-.015em;}
+a{color:inherit;text-decoration:none;}
+button{font-family:inherit;}
+.hidden{display:none!important;}
+
+/* ---- structure : formulaire à gauche, preuve à droite ----
+   Le formulaire occupe la colonne de gauche parce que c'est là que
+   l'œil arrive et que c'est la seule chose à faire sur cette page.
+   Le panneau de droite rappelle à quoi on s'inscrit ; il disparaît
+   en premier quand la place manque. */
+.auth-layout{display:grid;grid-template-columns:1fr 1fr;min-height:100%;}
+
+/* ---- colonne formulaire ---- */
+.auth-form-side{
+  background:var(--paper);
+  display:flex;flex-direction:column;
+  padding:40px clamp(24px,5vw,72px);
+  overflow-y:auto;
+}
+.auth-brand{display:inline-flex;align-items:center;gap:9px;font-family:'Fraunces',serif;font-weight:600;font-size:20px;color:var(--ink);}
+.auth-brand .dot{width:9px;height:9px;border-radius:50%;background:var(--rust);flex-shrink:0;}
+
+.auth-body{flex:1;display:flex;flex-direction:column;justify-content:center;padding:48px 0;}
+.auth-inner{width:100%;max-width:400px;margin:0 auto;}
+
+.auth-kicker{display:inline-flex;align-items:center;gap:10px;font-family:'IBM Plex Mono',monospace;font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--moss);margin-bottom:18px;}
+.auth-kicker::before{content:'';width:22px;height:1px;background:currentColor;}
+.auth-inner h1{font-size:clamp(28px,3.4vw,38px);line-height:1.1;margin-bottom:12px;}
+.auth-inner h1 em{font-style:italic;font-weight:500;color:var(--gold-dim);}
+.auth-lead{font-size:15px;color:var(--text-muted);margin-bottom:32px;}
+
+/* ---- boutons ---- */
+.btn-google{
+  width:100%;display:flex;align-items:center;justify-content:center;gap:12px;
+  background:#fff;color:var(--ink);border:1px solid rgba(22,41,44,.16);
+  font-size:15px;font-weight:600;padding:14px 20px;border-radius:12px;cursor:pointer;
+  transition:border-color .2s ease,box-shadow .2s ease,transform .2s var(--ease);
+}
+.btn-google:hover{border-color:rgba(22,41,44,.34);box-shadow:0 6px 18px -10px rgba(22,41,44,.4);transform:translateY(-1px);}
+.btn-google svg{width:18px;height:18px;flex-shrink:0;}
+
+.btn-submit{
+  width:100%;background:var(--ink);color:var(--paper);
+  font-size:15px;font-weight:600;padding:14px 20px;border-radius:12px;border:none;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:10px;
+  transition:background .2s ease,transform .2s var(--ease);
+}
+.btn-submit:hover:not(:disabled){background:var(--ink-deep);transform:translateY(-1px);}
+.btn-submit:disabled{opacity:.55;cursor:not-allowed;transform:none;}
+.btn-submit .spin{
+  width:15px;height:15px;border-radius:50%;flex-shrink:0;
+  border:2px solid rgba(247,242,231,.3);border-top-color:var(--paper);
+  animation:spin .7s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+.auth-sep{display:flex;align-items:center;gap:14px;margin:26px 0;font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted);}
+.auth-sep::before,.auth-sep::after{content:'';flex:1;height:1px;background:rgba(22,41,44,.14);}
+
+/* ---- champ ---- */
+.auth-field{margin-bottom:16px;}
+.auth-field label{display:block;font-size:13px;font-weight:500;color:var(--ink);margin-bottom:7px;}
+.auth-field input{
+  width:100%;padding:13px 15px;border-radius:12px;
+  border:1px solid rgba(22,41,44,.18);background:#fff;
+  font-family:inherit;font-size:16px; /* 16px : en dessous, iOS zoome au focus */
+  color:var(--ink);
+  transition:border-color .2s ease,box-shadow .2s ease;
+}
+.auth-field input::placeholder{color:#9AA8A6;}
+.auth-field input:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px rgba(214,163,67,.2);}
+.auth-field input[aria-invalid="true"]{border-color:var(--rust);}
+.auth-field input[aria-invalid="true"]:focus{box-shadow:0 0 0 3px rgba(181,87,62,.18);}
+
+/* Message d'erreur rattaché au champ, pas relégué en bas du
+   formulaire : l'utilisateur doit voir quoi corriger sans chercher. */
+.field-error{font-size:12.5px;color:var(--rust);margin-top:7px;min-height:1px;}
+
+.auth-switch{font-size:14px;color:var(--text-muted);margin-top:28px;padding-top:24px;border-top:1px solid rgba(22,41,44,.1);}
+.auth-switch a{color:var(--gold-dim);font-weight:600;border-bottom:1px solid transparent;transition:border-color .2s ease;}
+.auth-switch a:hover{border-bottom-color:var(--gold-dim);}
+
+.auth-legal{font-size:12px;color:var(--text-muted);margin-top:20px;line-height:1.5;}
+.auth-back{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--text-muted);display:inline-flex;align-items:center;gap:8px;transition:color .2s ease,gap .2s var(--ease);}
+.auth-back:hover{color:var(--ink);gap:12px;}
+
+/* ---- écran « regarde ta boîte mail » ----
+   Remplace le formulaire au lieu d'ajouter une ligne de statut
+   sous un bouton : après l'envoi, le formulaire n'a plus rien à
+   faire à l'écran et sa présence laisse croire qu'il faut recommencer. */
+.auth-sent{text-align:left;}
+.sent-icon{
+  width:52px;height:52px;border-radius:16px;background:var(--ink);color:var(--gold);
+  display:flex;align-items:center;justify-content:center;font-size:22px;margin-bottom:22px;
+}
+.auth-sent h1{margin-bottom:12px;}
+.sent-address{
+  font-family:'IBM Plex Mono',monospace;font-size:14px;color:var(--ink);
+  background:rgba(214,163,67,.14);border:1px solid rgba(214,163,67,.3);
+  padding:12px 15px;border-radius:12px;margin:20px 0;word-break:break-all;
+}
+.sent-hint{font-size:13.5px;color:var(--text-muted);margin-bottom:8px;}
+.btn-text{background:none;border:none;padding:0;cursor:pointer;font-size:13.5px;font-weight:600;color:var(--gold-dim);text-decoration:underline;text-underline-offset:3px;}
+.btn-text:disabled{opacity:.5;cursor:not-allowed;}
+
+/* ---- colonne preuve ---- */
+.auth-proof-side{
+  background:var(--ink);color:var(--text-on-ink);
+  display:flex;flex-direction:column;justify-content:center;
+  padding:56px clamp(28px,4.5vw,64px);
+  position:relative;overflow:hidden;
+}
+.proof-glow{position:absolute;width:520px;height:520px;border-radius:50%;filter:blur(90px);pointer-events:none;
+  background:radial-gradient(circle,rgba(214,163,67,.16),transparent 65%);top:-160px;right:-140px;}
+.auth-proof-side > *:not(.proof-glow){position:relative;z-index:1;}
+
+.proof-title{font-size:clamp(24px,2.6vw,32px);line-height:1.15;color:var(--paper);max-width:16ch;margin-bottom:14px;}
+.proof-title em{font-style:italic;font-weight:500;color:var(--gold);}
+.proof-sub{font-size:14.5px;color:var(--text-on-ink-dim);max-width:42ch;margin-bottom:36px;}
+
+.proof-card{background:var(--ink-deep);border:1px solid rgba(217,224,222,.1);border-radius:16px;overflow:hidden;box-shadow:0 30px 70px -30px rgba(0,0,0,.6);}
+.proof-card-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 18px;border-bottom:1px solid rgba(217,224,222,.08);}
+.proof-card-head strong{font-size:13.5px;color:var(--paper);font-weight:600;}
+.proof-badge{font-family:'IBM Plex Mono',monospace;font-size:10.5px;padding:5px 10px;border-radius:100px;background:rgba(79,109,92,.24);color:#9BC4A8;border:1px solid rgba(155,196,168,.3);white-space:nowrap;}
+.proof-steps{padding:6px 18px 16px;}
+.pstep{display:grid;grid-template-columns:10px 46px 1fr auto;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid rgba(217,224,222,.06);}
+.pstep:last-child{border-bottom:none;}
+.pstep .node{width:8px;height:8px;border-radius:50%;background:var(--gold);}
+.pstep.off .node{background:transparent;border:1px solid rgba(217,224,222,.3);}
+.pstep .when{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text-on-ink-dim);}
+.pstep .what{font-size:12.5px;color:var(--paper);}
+.pstep.off .what{color:var(--text-on-ink-dim);text-decoration:line-through;text-decoration-color:rgba(143,163,161,.5);}
+.pstate{font-family:'IBM Plex Mono',monospace;font-size:10px;padding:3px 8px;border-radius:100px;white-space:nowrap;}
+.pstate.on{background:rgba(214,163,67,.14);color:var(--gold);}
+.pstate.no{background:rgba(217,224,222,.07);color:var(--text-on-ink-dim);}
+
+.proof-points{list-style:none;margin-top:32px;display:flex;flex-direction:column;gap:12px;}
+.proof-points li{display:flex;gap:11px;font-size:14px;color:var(--text-on-ink-dim);}
+.proof-points li::before{content:'✦';color:var(--gold);flex-shrink:0;font-size:11px;line-height:1.7;}
+
+/* ---- responsive ----
+   Sous 900px la colonne de preuve passe sous le formulaire : sur un
+   écran étroit, ce qui compte est de pouvoir s'inscrire, pas de se
+   faire convaincre une deuxième fois. */
+@media(max-width:900px){
+  .auth-layout{grid-template-columns:1fr;}
+  .auth-proof-side{padding:44px 24px 56px;}
+  .proof-points{margin-top:26px;}
+  .auth-body{padding:36px 0;}
+}
+@media(max-width:560px){
+  .auth-form-side{padding:28px 20px;}
+  .proof-card-head strong{font-size:12.5px;}
+  .pstep{grid-template-columns:10px 1fr auto;}
+  .pstep .when{display:none;}
+}
+
+@media (prefers-reduced-motion: reduce){
+  *{animation-duration:.001ms!important;transition-duration:.001ms!important;}
+}

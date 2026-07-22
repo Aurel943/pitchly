@@ -9,17 +9,31 @@
 function showOnly(overlayId) {
   const loader = document.getElementById('pageLoader');
   if (loader) loader.remove(); // la gate a tranché : on sait quoi afficher
-  document.getElementById('authModal').classList.toggle('hidden', overlayId !== 'authModal');
   document.getElementById('accountInfoModal').classList.toggle('hidden', overlayId !== 'accountInfoModal');
   document.getElementById('onboardingModal').classList.toggle('hidden', overlayId !== 'onboardingModal');
   document.getElementById('mainDashboard').classList.toggle('hidden', overlayId !== 'mainDashboard');
 }
 
+// Vrai quand l'URL porte encore les jetons déposés par le lien de
+// connexion (#access_token=… en implicite, ?code=… en PKCE). Dans ce
+// cas la session n'est pas encore posée mais elle arrive : rediriger
+// maintenant renverrait vers la page de connexion quelqu'un qui vient
+// précisément de cliquer son lien. On laisse onAuthStateChange finir.
+function retourDeLienEmail() {
+  return /[#&]access_token=/.test(window.location.hash)
+    || /[?&]code=/.test(window.location.search);
+}
+
 async function initAuthGate() {
   const session = await getSession();
 
+  // Pas de session : la connexion a sa propre page. Une modale d'auth
+  // ici obligeait à dupliquer le formulaire, et laissait le dashboard
+  // vide derrière un fond flou pendant qu'on tapait son email.
+  // replace() plutôt que href : le retour arrière depuis la page de
+  // connexion doit ramener d'où l'on venait, pas sur une page inutile.
   if (!session) {
-    showOnly('authModal');
+    if (!retourDeLienEmail()) window.location.replace('connexion.html');
     return;
   }
 
@@ -41,27 +55,15 @@ async function initAuthGate() {
   renderDashboard(profile);
 }
 
+// Le lien de connexion par email dépose la session de façon asynchrone
+// au retour sur la page : sans ce réveil, l'utilisateur qui arrive depuis
+// son email verrait la gate le renvoyer vers connexion.html avant même
+// que la session soit posée.
 supabaseClient.auth.onAuthStateChange((_event, session) => {
   if (session && !currentUser) {
     initAuthGate();
   }
 });
-
-async function handleEmailLinkClick() {
-  const email = document.getElementById('authEmailInput').value.trim();
-  const status = document.getElementById('authStatus');
-  if (!email) return;
-
-  const btn = document.getElementById('authEmailBtn');
-  btn.disabled = true;
-
-  const { error } = await signInWithEmailLink(email);
-
-  btn.disabled = false;
-  status.textContent = error
-    ? 'erreur : ' + error.message
-    : `lien envoyé à ${email}, vérifie ta boîte mail.`;
-}
 
 async function handleAccountInfoSubmit() {
   try {

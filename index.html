@@ -55,8 +55,8 @@
   .btn-nav:hover{background:var(--paper);}
   /* Les ancres de section disparaissent en premier, l'inscription jamais.
      Sous 560px, « Connexion » saute aussi : elle reste atteignable depuis
-     la modale d'inscription, alors qu'un bouton qui se casse en deux
-     lignes coûte des inscriptions. */
+     la page d'inscription, alors qu'un bouton qui se casse en deux lignes
+     coûte des inscriptions. */
   @media(max-width:820px){.nav-links a:not(.btn-nav):not(.auth-link){display:none;}}
   @media(max-width:560px){
     nav .wrap{height:64px;}
@@ -317,8 +317,8 @@
       <a href="#difference">La différence</a>
       <a href="#tarifs">Tarifs</a>
       <a href="#faq">FAQ</a>
-      <a href="#" onclick="handleCTAClick('login'); return false;" class="auth-link">Connexion</a>
-      <a href="#" onclick="handleCTAClick('signup'); return false;" class="btn-nav auth-link">Créer mon compte</a>
+      <a href="connexion.html" class="auth-link">Connexion</a>
+      <a href="inscription.html" class="btn-nav auth-link">Créer mon compte</a>
       <a href="dashboard.html" id="navDashboardLink" class="btn-nav hidden">Mon espace</a>
     </div>
   </div>
@@ -349,7 +349,7 @@
           Tu ne t'occupes que des réponses.
         </p>
         <div class="hero-ctas">
-          <button class="btn-primary" onclick="handleCTAClick('signup')">Créer mon compte gratuit</button>
+          <a class="btn-primary" href="inscription.html">Créer mon compte gratuit</a>
           <a href="#fonctionnement" class="btn-ghost">Voir comment ça marche <span>→</span></a>
         </div>
         <p class="hero-note">sans carte bancaire · 5 générations et 1 campagne d'essai offertes</p>
@@ -646,7 +646,7 @@
           <li>Fiches prospects et historique</li>
           <li>Réponses aux objections</li>
         </ul>
-        <button class="btn-outline" onclick="handleCTAClick('signup')">Commencer gratuitement</button>
+        <a class="btn-outline" href="inscription.html">Commencer gratuitement</a>
       </div>
 
       <div class="price-card feature reveal" style="--i:1">
@@ -661,7 +661,7 @@
           <li>Détection des réponses et arrêt auto</li>
           <li>Taux de réponse par campagne</li>
         </ul>
-        <button class="btn-ink" onclick="handleCTAClick('signup')">Démarrer avec Solo</button>
+        <a class="btn-ink" href="inscription.html">Démarrer avec Solo</a>
       </div>
 
       <div class="price-card plain reveal" style="--i:2">
@@ -675,7 +675,7 @@
           <li>Profil de style appris de tes retours</li>
           <li>Statistiques détaillées par message</li>
         </ul>
-        <button class="btn-outline" onclick="handleCTAClick('signup')">Démarrer avec Pro</button>
+        <a class="btn-outline" href="inscription.html">Démarrer avec Pro</a>
       </div>
     </div>
     <p class="pricing-note reveal" style="--i:3">
@@ -764,7 +764,7 @@
       Crée ton compte, ajoute un prospect, lance ta première séquence. Tu verras l'outil tourner
       avant même d'avoir sorti ta carte — il n'y en a pas besoin.
     </p>
-    <button class="btn-primary reveal" style="--i:2" onclick="handleCTAClick('signup')">Créer mon compte gratuit</button>
+    <a class="btn-primary reveal" style="--i:2" href="inscription.html">Créer mon compte gratuit</a>
   </div>
 </section>
 
@@ -774,28 +774,6 @@
     <div>Prospection email pour indépendants · © 2026</div>
   </div>
 </footer>
-
-<!-- ============ MODALE CONNEXION / INSCRIPTION ============ -->
-<div class="modal-overlay hidden" id="authModal" data-dismissable>
-  <div class="modal">
-    <button class="icon-btn modal-close" onclick="closeAuthModal()" title="fermer">✕</button>
-    <h2 id="authModalTitle">crée ton compte</h2>
-    <p class="desc" id="authModalDesc">deux minutes, et ta première séquence peut partir.</p>
-
-    <button class="btn-primary" onclick="signInWithGoogle('dashboard.html')">continuer avec Google</button>
-
-    <div class="auth-divider"><span>ou</span></div>
-
-    <div class="field">
-      <label>email</label>
-      <input type="email" id="authEmailInput" placeholder="toi@exemple.com">
-    </div>
-    <button class="btn-primary" id="authEmailBtn" onclick="handleEmailLinkClick()">recevoir un lien de connexion</button>
-    <p class="auth-status" id="authStatus"></p>
-
-    <p class="auth-switch"><span id="authSwitchQuestion">déjà inscrit ?</span> <a href="#" id="authSwitchLink" onclick="handleAuthSwitchClick(); return false;">connecte-toi</a></p>
-  </div>
-</div>
 
 <script>
 (function(){
