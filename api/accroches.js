@@ -300,12 +300,22 @@ Réponds UNIQUEMENT avec un tableau JSON valide, sans texte autour, sans bloc de
       },
       body: JSON.stringify({
         model: 'claude-sonnet-5',
-        max_tokens: 1400,
-        // Contrairement aux générations de copie courte, repérer un
-        // angle exploitable dans une page bavarde demande un vrai tri.
-        // On garde donc le raisonnement, avec un budget qui laisse de
-        // la place au JSON derrière.
-        thinking: { type: 'enabled', budget_tokens: 1024 },
+        // Généreux, et ce n'est pas du gaspillage : max_tokens plafonne
+        // le raisonnement ET le texte cumulés. Trop bas, le raisonnement
+        // consomme tout et le JSON revient tronqué — le bug déjà corrigé
+        // sur les autres routes en coupant le raisonnement. Ici on ne
+        // peut pas le couper, donc on paie la place.
+        max_tokens: 8000,
+        // Seule route du projet qui garde le raisonnement : repérer un
+        // fait exploitable dans une page bavarde demande un vrai tri, et
+        // c'est ce tri qui évite d'inventer. Les autres routes écrivent
+        // de la copie courte et n'en ont pas besoin.
+        //
+        // "adaptive" est la seule forme acceptée depuis Sonnet 5 : un
+        // budget de tokens explicite ({type:'enabled', budget_tokens})
+        // est refusé avec un 400. La profondeur se règle par effort.
+        thinking: { type: 'adaptive' },
+        output_config: { effort: 'medium' },
         messages: [{ role: 'user', content: prompt }],
       }),
     });
