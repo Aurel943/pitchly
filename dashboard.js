@@ -100,56 +100,258 @@ async function handleOnboardingSubmit() {
 
 async function renderDashboard(profile) {
   document.getElementById('welcomeMessage').textContent = `bonjour ${profile.nom}`;
-
-  const limite = limiteGenerations(profile);
-  document.getElementById('quotaDisplay').textContent = limite === null
-    ? 'générations illimitées'
-    : `${Math.max(0, limite - getQuotaUsed(profile))} générations restantes`;
-
   document.getElementById('navAvatarInitial').textContent = profile.nom ? profile.nom[0].toUpperCase() : '?';
   document.getElementById('navAvatarName').textContent = profile.nom || 'mon compte';
 
-  const [stats, recent, progress] = await Promise.all([getDashboardStats(), getRecentActivity(), getProgressData()]);
-  renderDashboardStats(stats);
+  renderPlanBadge(profile);
+
+  const [etat, recent, progress] = await Promise.all([
+    getEtatProspection(),
+    getRecentActivity(),
+    getProgressData(),
+  ]);
+
+  renderHeadline(etat);
+  renderInbox(etat);
+  renderNextStep(etat);
+  renderMetrics(etat);
   renderRecentActivity(recent);
   renderProgress(progress);
 }
 
 /* ================================================================
-   STATS RÉELLES + ACTIVITÉ RÉCENTE
-   Donne du contenu vivant au dashboard (au lieu d'un simple menu de
-   raccourcis) : volumes sauvegardés, derniers éléments traités, et
-   plus bas la progression du taux de réussite (voir getProgressData).
+   PLAN ET QUOTA
+   Le badge ne devient voyant qu'au moment où le quota devient un vrai
+   frein. Un appel à l'upgrade permanent se transforme en décor qu'on
+   ne voit plus au bout de trois jours.
    ================================================================ */
 
-async function getDashboardStats() {
-  const [scripts, objections] = await Promise.all([
-    supabaseClient.from('saved_scripts').select('id', { count: 'exact', head: true }),
-    supabaseClient.from('saved_objections').select('id', { count: 'exact', head: true }),
-  ]);
+function renderPlanBadge(profile) {
+  const el = document.getElementById('planBadge');
+  const plan = planDe(profile);
+  const limite = limiteGenerations(profile);
 
-  return {
-    scripts: scripts.count || 0,
-    objections: objections.count || 0,
-  };
-}
-
-function renderDashboardStats(stats) {
-  const el = document.getElementById('dashboardStats');
-
-  if (stats.scripts === 0 && stats.objections === 0) {
-    el.classList.add('hidden');
+  if (limite === null) {
+    el.textContent = `plan ${PLANS_AFFICHAGE[plan].label}`;
     return;
   }
 
-  const parts = [
-    `${stats.scripts} script${stats.scripts > 1 ? 's' : ''} sauvegardé${stats.scripts > 1 ? 's' : ''}`,
-    `${stats.objections} objection${stats.objections > 1 ? 's' : ''} traitée${stats.objections > 1 ? 's' : ''}`,
+  const restant = Math.max(0, limite - getQuotaUsed(profile));
+  const bientotVide = restant <= 2;
+
+  el.classList.toggle('warn', bientotVide);
+  el.textContent = bientotVide
+    ? `${restant} génération${restant > 1 ? 's' : ''} restante${restant > 1 ? 's' : ''} — voir les formules`
+    : `plan ${PLANS_AFFICHAGE[plan].label} · ${restant} générations`;
+}
+
+/* ================================================================
+   ÉTAT RÉEL DE LA PROSPECTION
+
+   Une seule lecture, partagée par tous les blocs de la page : le
+   bandeau de chiffres, les réponses à traiter et la prochaine étape
+   racontent la même situation, ils ne doivent pas se contredire pour
+   avoir interrogé la base à trois moments différents.
+   ================================================================ */
+
+async function getEtatProspection() {
+  const [prospects, sequences, campagnes] = await Promise.all([
+    supabaseClient.from('prospects').select('id', { count: 'exact', head: true }),
+    supabaseClient.from('saved_sequences').select('id', { count: 'exact', head: true }),
+    supabaseClient
+      .from('campaigns')
+      .select('id, nom, statut, destinataire, replied_at, started_at, prospects(nom, entreprise), campaign_steps(statut, send_at)')
+      .order('started_at', { ascending: false }),
+  ]);
+
+  const liste = campagnes.data || [];
+  const etapes = liste.flatMap(c => c.campaign_steps || []);
+
+  return {
+    prospects: prospects.count || 0,
+    sequences: sequences.count || 0,
+    campagnes: liste,
+    actives: liste.filter(c => c.statut === 'active'),
+    repondues: liste.filter(c => c.statut === 'replied'),
+    envoyes: etapes.filter(e => e.statut === 'sent').length,
+    aVenir: etapes.filter(e => e.statut === 'pending').length,
+  };
+}
+
+// Le titre dit la situation plutôt que de poser une question creuse
+// ("Qu'est-ce qu'on vend aujourd'hui ?" n'informait de rien).
+function renderHeadline(etat) {
+  const h1 = document.getElementById('dashboardHeadline');
+  const sous = document.getElementById('dashboardStats');
+
+  if (etat.campagnes.length === 0) {
+    h1.innerHTML = 'Ta prospection <em>commence ici.</em>';
+    sous.textContent = etat.prospects > 0
+      ? `${etat.prospects} prospect${etat.prospects > 1 ? 's' : ''} en fiche · aucune séquence lancée`
+      : 'aucun prospect enregistré pour l\'instant';
+    return;
+  }
+
+  if (etat.repondues.length > 0) {
+    h1.innerHTML = `${etat.repondues.length} prospect${etat.repondues.length > 1 ? 's t\'ont' : ' t\'a'} <em>répondu.</em>`;
+  } else if (etat.actives.length > 0) {
+    h1.innerHTML = `${etat.actives.length} séquence${etat.actives.length > 1 ? 's tournent' : ' tourne'} <em>en ce moment.</em>`;
+  } else {
+    h1.innerHTML = 'Où en est <em>ta prospection ?</em>';
+  }
+
+  sous.textContent = `${etat.envoyes} email${etat.envoyes > 1 ? 's' : ''} envoyé${etat.envoyes > 1 ? 's' : ''} · ${etat.aVenir} programmé${etat.aVenir > 1 ? 's' : ''} · ${etat.prospects} prospect${etat.prospects > 1 ? 's' : ''}`;
+}
+
+/* ================================================================
+   RÉPONSES À TRAITER
+   ================================================================ */
+
+function renderInbox(etat) {
+  const section = document.getElementById('inboxSection');
+  if (etat.repondues.length === 0) {
+    section.classList.add('hidden');
+    return;
+  }
+
+  document.getElementById('inboxList').innerHTML = etat.repondues.map(c => {
+    const nom = c.prospects?.nom || c.destinataire;
+    const ou = c.prospects?.entreprise ? ` · ${c.prospects.entreprise}` : '';
+    return `
+      <div class="inbox-item" onclick="window.location.href='campagnes.html'">
+        <div class="ib-who">
+          <strong>${nom}${ou}</strong>
+          <span>a répondu à « ${c.nom || 'ta séquence'} » — les relances sont arrêtées</span>
+        </div>
+        <span class="ib-when">${c.replied_at ? formatDateTime(c.replied_at) : ''}</span>
+      </div>`;
+  }).join('');
+
+  section.classList.remove('hidden');
+}
+
+/* ================================================================
+   PROCHAINE ÉTAPE
+
+   Le parcours d'activation va de "aucun prospect" à "une campagne
+   lancée". Tant qu'il n'est pas terminé, la page ne propose qu'une
+   action : celle qui fait avancer d'un cran. Un utilisateur qui génère
+   dix textes sans jamais lancer d'envoi n'a rien activé du tout, et
+   c'est exactement ce que les quatre raccourcis d'avant encourageaient.
+   ================================================================ */
+
+const ETAPES_ACTIVATION = [
+  { cle: 'prospect', label: 'un prospect' },
+  { cle: 'sequence', label: 'une séquence' },
+  { cle: 'campagne', label: 'un envoi lancé' },
+  { cle: 'reponse', label: 'une réponse' },
+];
+
+function renderNextStep(etat) {
+  const faits = {
+    prospect: etat.prospects > 0,
+    sequence: etat.sequences > 0,
+    campagne: etat.campagnes.length > 0,
+    reponse: etat.repondues.length > 0,
+  };
+
+  let etape;
+  if (!faits.prospect) {
+    etape = {
+      href: 'prospects.html', icone: '👤', bouton: 'ajouter un prospect →',
+      titre: 'Ajoute ton premier prospect',
+      texte: "Un nom, un email, et le contexte que tu as en tête. C'est ce contexte qui rendra tous les messages écrits pour lui personnels.",
+    };
+  } else if (!faits.sequence) {
+    etape = {
+      href: 'sequences.html', icone: '⇶', bouton: 'écrire une séquence →',
+      titre: 'Écris ta première séquence',
+      texte: 'Premier contact et relances, générés d\'un coup et cohérents entre eux. C\'est ce qui sera envoyé, pas un brouillon à recopier.',
+    };
+  } else if (!faits.campagne) {
+    etape = {
+      href: 'sequences.html', icone: '▶', bouton: 'lancer l\'envoi →',
+      titre: 'Lance ta première séquence',
+      texte: "Ouvre une séquence sauvegardée et clique « lancer l'envoi ». Tu verras le calendrier complet avant que quoi que ce soit ne parte.",
+    };
+  } else if (faits.reponse) {
+    etape = {
+      href: 'campagnes.html', icone: '✉', bouton: 'voir les réponses →',
+      titre: 'Réponds à tes prospects',
+      texte: 'Les relances sont déjà arrêtées de leur côté. À toi de reprendre la conversation.',
+    };
+  } else {
+    etape = {
+      href: 'prospects.html', icone: '+', bouton: 'ajouter un prospect →',
+      titre: 'Ajoute un prospect de plus',
+      texte: `${etat.aVenir} message${etat.aVenir > 1 ? 's partiront' : ' partira'} tout seul${etat.aVenir > 1 ? 's' : ''} dans les prochains jours. Le meilleur usage de ton temps maintenant, c'est d'alimenter le haut du tunnel.`,
+    };
+  }
+
+  const carte = document.getElementById('nextStepCard');
+  carte.setAttribute('href', etape.href);
+  document.getElementById('nextStepIcon').textContent = etape.icone;
+  document.getElementById('nextStepTitle').textContent = etape.titre;
+  document.getElementById('nextStepText').textContent = etape.texte;
+  carte.querySelector('.next-step-go').textContent = etape.bouton;
+
+  // Les jalons ne s'affichent que pendant le parcours : une fois les
+  // quatre franchis, ils n'apprennent plus rien et encombrent la page.
+  const jalons = document.getElementById('onboardingSteps');
+  if (ETAPES_ACTIVATION.every(e => faits[e.cle])) {
+    jalons.innerHTML = '';
+    return;
+  }
+  jalons.innerHTML = ETAPES_ACTIVATION.map(e => `
+    <span class="ob-step ${faits[e.cle] ? 'done' : ''}">
+      <i>${faits[e.cle] ? '✓' : ''}</i>${e.label}
+    </span>`).join('');
+}
+
+/* ================================================================
+   CHIFFRES
+   ================================================================ */
+
+function renderMetrics(etat) {
+  const section = document.getElementById('metricsSection');
+
+  // Rien d'envoyé : quatre zéros n'informent de rien et donnent
+  // l'impression d'un outil vide. La prochaine étape suffit.
+  if (etat.campagnes.length === 0) {
+    section.classList.add('hidden');
+    return;
+  }
+
+  const taux = Math.round((etat.repondues.length / etat.campagnes.length) * 100);
+  // Sous 5 campagnes, un pourcentage ment : une réponse sur deux
+  // s'afficherait "50 % de réponse". On montre le brut à la place.
+  const fiable = etat.campagnes.length >= 5;
+
+  const cases = [
+    {
+      num: fiable ? `${taux}%` : `${etat.repondues.length}/${etat.campagnes.length}`,
+      label: fiable ? 'de tes séquences obtiennent une réponse' : 'séquences ont obtenu une réponse',
+      hint: fiable ? null : `taux calculé à partir de 5 campagnes`,
+      highlight: true,
+    },
+    { num: etat.actives.length, label: `séquence${etat.actives.length > 1 ? 's' : ''} en cours` },
+    { num: etat.envoyes, label: `email${etat.envoyes > 1 ? 's' : ''} réellement envoyé${etat.envoyes > 1 ? 's' : ''}` },
+    { num: etat.aVenir, label: `message${etat.aVenir > 1 ? 's' : ''} programmé${etat.aVenir > 1 ? 's' : ''}` },
   ];
 
-  el.textContent = parts.join(' · ');
-  el.classList.remove('hidden');
+  document.getElementById('metricsGrid').innerHTML = cases.map(c => `
+    <div class="metric ${c.highlight ? 'highlight' : ''}">
+      <div class="m-num">${c.num}</div>
+      <div class="m-label">${c.label}</div>
+      ${c.hint ? `<span class="m-hint">${c.hint}</span>` : ''}
+    </div>`).join('');
+
+  section.classList.remove('hidden');
 }
+
+/* ================================================================
+   ACTIVITÉ RÉCENTE
+   ================================================================ */
 
 async function getRecentActivity() {
   const items = await getCombinedSaved({ limit: 4 });

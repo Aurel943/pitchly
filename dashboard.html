@@ -19,12 +19,9 @@
   <div class="wrap">
     <a class="logo" href="index.html"><span class="dot"></span>pitchly</a>
     <div class="nav-tabs">
-      <a href="dashboard.html" class="active">dashboard</a>
-      <a href="app.html">scripts</a>
-      <a href="sequences.html">séquences</a>
-      <a href="objections.html">objections</a>
       <a href="prospects.html">prospects</a>
-      <a href="campagnes.html">campagnes</a>
+      <a href="app.html">rédiger</a>
+      <a href="dashboard.html" class="active">résultats</a>
     </div>
     <div class="nav-right">
       <a class="nav-avatar" href="compte.html" title="mon compte">
@@ -36,6 +33,13 @@
   </div>
 </nav>
 
+<div class="subnav">
+  <div class="wrap">
+    <a href="dashboard.html" class="active">vue d'ensemble</a>
+    <a href="campagnes.html">campagnes en cours</a>
+  </div>
+</div>
+
 <!-- affiché le temps de résoudre la gate (session → compte → profil), retiré par dashboard.js -->
 <div class="page-loader" id="pageLoader"><span class="loader-ring"></span>chargement…</div>
 
@@ -45,36 +49,43 @@
     <header class="page-head">
       <div class="page-head-top">
         <p class="page-kicker" id="welcomeMessage">bienvenue</p>
-        <span class="quota" id="quotaDisplay">— générations restantes</span>
+        <a class="plan-badge" id="planBadge" href="index.html#tarifs">—</a>
       </div>
-      <h1>Qu'est-ce qu'on vend <em>aujourd'hui&nbsp;?</em></h1>
-      <p class="dashboard-stats hidden" id="dashboardStats"></p>
+      <h1 id="dashboardHeadline">Où en est <em>ta prospection&nbsp;?</em></h1>
+      <p class="dashboard-stats" id="dashboardStats"></p>
     </header>
 
-    <div class="dashboard-section">
-      <span class="section-label">passer à l'action</span>
-      <div class="shortcut-grid">
-        <a class="shortcut-card" href="app.html">
-          <span class="icon">✎</span>
-          <h3>générer un message</h3>
-          <p>email ou LinkedIn, prêt en quelques secondes.</p>
-        </a>
-        <a class="shortcut-card" href="sequences.html">
-          <span class="icon">⇶</span>
-          <h3>générer une séquence</h3>
-          <p>premier contact + relances, écrits d'un coup et cohérents.</p>
-        </a>
-        <a class="shortcut-card" href="objections.html">
-          <span class="icon">❖</span>
-          <h3>répondre à une objection</h3>
-          <p>saisis l'objection reçue, obtiens une réponse adaptée.</p>
-        </a>
-        <a class="shortcut-card" href="prospects.html">
-          <span class="icon">👤</span>
-          <h3>mes prospects</h3>
-          <p>garde le contexte de chaque prospect, il ne se retape plus.</p>
-        </a>
-      </div>
+    <!-- ============ RÉPONSES À TRAITER ============
+         En tête de page parce que c'est la seule chose de ce dashboard
+         qui appelle une action le jour même : un prospect qui a répondu
+         et qui attend. Masqué tant qu'il n'y en a aucune. -->
+    <div class="dashboard-section hidden" id="inboxSection">
+      <span class="section-label">à traiter maintenant</span>
+      <div id="inboxList"></div>
+    </div>
+
+    <!-- ============ PROCHAINE ÉTAPE ============
+         Un nouvel inscrit voyait quatre raccourcis équivalents et devait
+         deviner par où commencer. Une seule action est proposée ici, celle
+         qui le rapproche de sa première campagne lancée — le moment où le
+         produit devient utile. -->
+    <div class="dashboard-section" id="nextStepSection">
+      <span class="section-label">prochaine étape</span>
+      <a class="next-step" id="nextStepCard" href="prospects.html">
+        <span class="next-step-icon" id="nextStepIcon">→</span>
+        <div class="next-step-body">
+          <h3 id="nextStepTitle">—</h3>
+          <p id="nextStepText">—</p>
+        </div>
+        <span class="next-step-go">commencer →</span>
+      </a>
+      <div class="onboarding-steps" id="onboardingSteps"></div>
+    </div>
+
+    <!-- ============ CHIFFRES ============ -->
+    <div class="dashboard-section hidden" id="metricsSection">
+      <span class="section-label">tes chiffres</span>
+      <div class="metrics" id="metricsGrid"></div>
     </div>
 
     <div class="dashboard-section hidden" id="progressSection">
@@ -98,7 +109,7 @@
 <div class="modal-overlay hidden" id="authModal">
   <div class="modal">
     <h2>connecte-toi</h2>
-    <p class="desc">ton profil, tes scripts et ton quota te suivent partout.</p>
+    <p class="desc">tes prospects, tes séquences et tes campagnes t'attendent.</p>
 
     <button class="btn-primary" onclick="signInWithGoogle()">continuer avec Google</button>
 
@@ -143,7 +154,7 @@
 <div class="modal-overlay hidden" id="onboardingModal">
   <div class="modal">
     <h2>parle-nous de ton activité</h2>
-    <p class="desc">on adapte chaque script généré à ton métier.</p>
+    <p class="desc">chaque message envoyé sera adapté à ton métier, pas à un modèle générique.</p>
 
     <div class="field">
       <label>secteur</label>

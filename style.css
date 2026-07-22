@@ -72,6 +72,25 @@ nav .icon-btn:hover{color:var(--paper);}
   .profile-pill{display:none;}
 }
 
+/* Sous-navigation.
+   Les trois onglets du haut nomment des moments du travail — qui je
+   contacte, quoi leur dire, ce que ça a donné. Ce second niveau ne
+   contient que les variantes d'un même moment (trois formats à écrire,
+   deux façons de regarder ses résultats). Les six onglets à plat
+   d'avant obligeaient à connaître le produit pour s'en servir : rien ne
+   disait que « scripts », « séquences » et « objections » étaient trois
+   fois la même action. */
+.subnav{position:sticky;top:70px;z-index:99;background:rgba(15,29,31,.92);backdrop-filter:blur(12px);border-bottom:1px solid rgba(217,224,222,.06);}
+.subnav .wrap{display:flex;align-items:center;gap:22px;max-width:1100px;height:44px;font-size:13px;overflow-x:auto;}
+.subnav a{color:var(--text-on-ink-dim);white-space:nowrap;padding:3px 0;border-bottom:2px solid transparent;transition:color .25s ease,border-color .25s ease;}
+.subnav a:hover{color:var(--paper);}
+.subnav a.active{color:var(--paper);border-bottom-color:var(--gold);}
+@media(max-width:760px){
+  /* La nav du haut passe en hauteur variable dès qu'elle enroule ses
+     onglets : un top fixe collerait le sous-menu au mauvais endroit. */
+  .subnav{position:static;}
+}
+
 .hidden{display:none!important;}
 
 /* Loader affiché pendant la résolution de session/profil — évite
@@ -341,6 +360,77 @@ textarea{resize:vertical;min-height:64px;}
 @media(max-width:720px){.shortcut-grid{grid-template-columns:1fr;}}
 
 .dashboard-stats{font-family:'IBM Plex Mono',monospace;font-size:12.5px;color:var(--text-muted);}
+
+/* ============================================
+   COCKPIT DU DASHBOARD
+
+   La page d'accueil montrait quatre raccourcis identiques vers quatre
+   générateurs. Elle montre maintenant, dans cet ordre : ce qui attend
+   une réponse aujourd'hui, la prochaine action à faire, puis les
+   chiffres réels. C'est l'ordre dans lequel on se pose les questions
+   en ouvrant l'outil le matin.
+   ============================================ */
+
+/* Badge de plan — discret quand tout va bien, il ne réclame que
+   lorsqu'il reste vraiment peu de quota (voir renderPlanBadge). */
+.plan-badge{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;letter-spacing:.04em;padding:5px 12px;border-radius:100px;background:rgba(217,224,222,.08);color:var(--text-on-ink-dim);border:1px solid rgba(217,224,222,.14);}
+.plan-badge.warn{background:rgba(214,163,67,.14);color:var(--gold);border-color:rgba(214,163,67,.3);}
+a.plan-badge:hover{color:var(--paper);border-color:rgba(217,224,222,.35);}
+
+/* Prochaine étape — une seule action mise en avant, jamais quatre. */
+.next-step{
+  background:var(--paper);color:var(--ink);border-radius:22px;padding:24px 26px;
+  display:flex;align-items:center;gap:20px;
+  box-shadow:0 22px 50px -32px rgba(0,0,0,.5);
+  transition:transform .3s var(--ease),box-shadow .3s ease;
+  animation:cardIn .7s var(--ease) both;
+}
+.next-step:hover{transform:translateY(-4px);box-shadow:0 26px 54px -24px rgba(0,0,0,.5);}
+.next-step-icon{font-size:20px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:13px;background:var(--ink);color:var(--gold);}
+.next-step-body{flex:1;min-width:0;}
+.next-step-body h3{font-size:18px;margin-bottom:4px;}
+.next-step-body p{font-size:13.5px;color:var(--text-muted);}
+.next-step-go{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--gold-dim);white-space:nowrap;flex-shrink:0;}
+@media(max-width:620px){
+  .next-step{flex-wrap:wrap;gap:14px;}
+  .next-step-go{width:100%;}
+}
+
+/* Jalons d'activation : quatre points jusqu'à la première campagne
+   lancée. Ils disparaissent une fois le parcours terminé — un rappel
+   permanent de ce qui est déjà fait n'aide plus personne. */
+.onboarding-steps{display:flex;align-items:center;gap:10px;margin-top:16px;flex-wrap:wrap;}
+.ob-step{display:inline-flex;align-items:center;gap:7px;font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--text-on-ink-dim);}
+.ob-step i{font-style:normal;width:16px;height:16px;border-radius:50%;border:1px solid rgba(217,224,222,.28);display:inline-flex;align-items:center;justify-content:center;font-size:9px;flex-shrink:0;}
+.ob-step.done{color:var(--gold);}
+.ob-step.done i{background:var(--gold);border-color:var(--gold);color:var(--ink);}
+.ob-step+.ob-step::before{content:'·';margin-right:4px;color:rgba(217,224,222,.24);}
+
+/* Chiffres. Le taux de réponse est mis en avant : c'est la seule
+   métrique de cette page qu'aucun autre outil ne peut produire pour
+   l'utilisateur, et la seule qui dise si sa prospection marche. */
+.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;}
+.metric{background:var(--paper);color:var(--ink);border-radius:18px;padding:20px 22px;animation:cardIn .7s var(--ease) both;}
+.metric .m-num{font-family:'Fraunces',serif;font-size:32px;font-weight:600;line-height:1.1;color:var(--ink);}
+.metric .m-label{font-size:12.5px;color:var(--text-muted);margin-top:4px;}
+.metric.highlight{background:var(--gold);}
+.metric.highlight .m-num{color:var(--ink);}
+.metric.highlight .m-label{color:rgba(22,41,44,.72);}
+.metric .m-hint{font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--text-muted);margin-top:8px;display:block;}
+.metric.highlight .m-hint{color:rgba(22,41,44,.6);}
+
+/* Réponses à traiter. */
+.inbox-item{
+  background:var(--paper);color:var(--ink);border-radius:16px;padding:16px 20px;margin-bottom:10px;
+  display:flex;align-items:center;gap:14px;cursor:pointer;
+  border-left:3px solid var(--moss);
+  transition:transform .25s var(--ease);
+}
+.inbox-item:hover{transform:translateX(4px);}
+.inbox-item .ib-who{flex:1;min-width:0;}
+.inbox-item .ib-who strong{display:block;font-size:14.5px;}
+.inbox-item .ib-who span{font-size:12.5px;color:var(--text-muted);}
+.inbox-item .ib-when{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--moss);white-space:nowrap;}
 
 .recent-type{font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--moss);display:block;margin-bottom:2px;}
 
