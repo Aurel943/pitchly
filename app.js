@@ -94,6 +94,7 @@ async function buildProspectContext(prospectId) {
     secteur: prospect.secteur,
     statut: prospect.statut,
     notes: prospect.notes,
+    accroche: prospect.accroche,
     historique: historique.map(h => ({ type: h.type, outcome: h.outcome, texte: h.text })),
   };
 }

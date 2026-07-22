@@ -31,11 +31,9 @@ const STATUT_ETAPE = {
   failed:    'échec',
 };
 
-function esc(s) {
-  return String(s || '')
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-}
+// Alias local vers l'échappement partagé (auth.js) — deux
+// implémentations de la même chose finiraient par diverger.
+const esc = escapeHtml;
 
 // Date courte et lisible ("mar. 23 juil.") — les campagnes se lisent en
 // calendrier, l'heure exacte n'apporte rien dans la liste.

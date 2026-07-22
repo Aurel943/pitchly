@@ -111,6 +111,14 @@ export default async function handler(req, res) {
     ? `\n\nProfil de style appris de ce vendeur à partir de ses retours terrain, à respecter en priorité :\n${styleProfile}`
     : '';
 
+  // Dans une séquence, l'accroche porte le premier message et lui seul :
+  // la répéter à chaque relance transformerait le fait observé en
+  // rengaine, ce qui produit exactement l'effet inverse de celui voulu.
+  const blocAccroche = prospect?.accroche
+    ? `\n\nRAISON D'ÉCRIRE À CE PROSPECT AUJOURD'HUI (fait observé sur son site) :\n${prospect.accroche}\n` +
+      `Ce fait doit apparaître dans les deux premières phrases du PREMIER message uniquement, formulé naturellement. Les relances s'appuient dessus sans le répéter mot pour mot. Ne le déforme pas et n'invente rien autour.`
+    : '';
+
   // Contexte du prospect précis (fiche CRM + historique des échanges).
   const blocProspect = prospect
     ? `\n\nInfos sur CE prospect précis, à prendre en compte pour personnaliser toute la séquence :\n` +
@@ -136,7 +144,7 @@ Règles de la séquence :
 - Propose pour chaque étape un délai réaliste depuis le message précédent, dans le champ "delai" (ex : "J+0", "J+3", "J+7", "J+14").
 - Donne à chaque étape un "titre" court décrivant son rôle (ex : "Premier contact", "Relance valeur", "Dernière relance").
 Ton souhaité : ${ton}. ${adresseInstruction}
-${contexte ? `Contexte supplémentaire donné par l'utilisateur : ${contexte}` : ''}${blocProspect}${blocExemples}${blocStyleProfile}
+${contexte ? `Contexte supplémentaire donné par l'utilisateur : ${contexte}` : ''}${blocAccroche}${blocProspect}${blocExemples}${blocStyleProfile}
 
 Évite tout jargon commercial générique ("offre exceptionnelle", "n'hésitez pas à", "je me permets de vous contacter", "saisissez cette opportunité") — écris comme un vrai indépendant écrirait, pas comme une publicité.
 Rédige la séquence, relis-la silencieusement pour vérifier la cohérence d'un message à l'autre et le respect de toutes les consignes, puis ne renvoie que la version finale.

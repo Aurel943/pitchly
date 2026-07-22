@@ -87,6 +87,12 @@
       </div>
 
       <div class="field">
+        <label>site web (recommandé)</label>
+        <input type="text" id="prospectSiteInput" placeholder="ex : atelier-marchand.fr">
+        <p class="field-hint">c'est à partir de son site que Pitchly trouvera une raison concrète de lui écrire.</p>
+      </div>
+
+      <div class="field">
         <label>notes / contexte</label>
         <textarea id="prospectNotesInput" placeholder="ex : rencontré au salon Business Show, cherche à automatiser sa prospection"></textarea>
       </div>
@@ -163,6 +169,38 @@
     <div class="field">
       <label>notes / contexte</label>
       <textarea id="prospectModalNotes"></textarea>
+    </div>
+
+    <!-- ============ POURQUOI LUI ÉCRIRE ============
+         Le cœur du produit. Un indépendant qui ne sait pas prospecter
+         ne bute pas sur la rédaction du message, il bute ici : quelle
+         raison concrète ai-je de contacter cette personne aujourd'hui.
+         Tant que ce bloc est vide, tout message généré pour ce prospect
+         sera interchangeable avec n'importe quel autre. -->
+    <div class="accroche-block">
+      <div class="card-label"><span>pourquoi lui écrire</span></div>
+
+      <div class="accroche-current hidden" id="accrocheCurrent">
+        <span class="accroche-tag">accroche retenue</span>
+        <p id="accrocheCurrentText"></p>
+        <button class="btn-text" onclick="handleClearAccroche()">retirer</button>
+      </div>
+
+      <div class="field">
+        <label>site web du prospect</label>
+        <div class="field-inline">
+          <input type="text" id="prospectModalSite" placeholder="atelier-marchand.fr">
+          <button class="btn-primary btn-compact" id="accrocheBtn" onclick="handleFindAccroches()">
+            ✦ trouver des angles
+          </button>
+        </div>
+      </div>
+
+      <p class="empty-state" id="accrocheEmpty">
+        Pitchly lit son site et te propose trois raisons concrètes de le contacter — un fait
+        vérifiable à chaque fois, jamais « j'ai vu votre profil et je me permets ».
+      </p>
+      <div id="accrocheResults"></div>
     </div>
 
     <div class="modal-actions">

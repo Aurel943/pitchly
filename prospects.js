@@ -60,10 +60,11 @@ async function handleCreateProspect() {
   const statut = document.getElementById('prospectStatutInput').value;
   const secteur = readSecteur('prospectSecteurInput', 'prospectSecteurAutreInput');
   const notes = document.getElementById('prospectNotesInput').value.trim();
+  const siteUrl = document.getElementById('prospectSiteInput').value.trim();
 
   const { error } = await supabaseClient
     .from('prospects')
-    .insert({ user_id: currentUser.id, nom, entreprise: entreprise || null, secteur: secteur || null, statut, notes: notes || null });
+    .insert({ user_id: currentUser.id, nom, entreprise: entreprise || null, secteur: secteur || null, statut, notes: notes || null, site_url: siteUrl || null });
 
   if (error) {
     showToast('Erreur lors de la création : ' + error.message, 'failed');
@@ -73,6 +74,7 @@ async function handleCreateProspect() {
   document.getElementById('prospectNomInput').value = '';
   document.getElementById('prospectEntrepriseInput').value = '';
   document.getElementById('prospectNotesInput').value = '';
+  document.getElementById('prospectSiteInput').value = '';
   document.getElementById('prospectStatutInput').value = 'nouveau';
 
   showToast(`Fiche "${nom}" créée.`, 'info');
@@ -142,8 +144,11 @@ async function renderProspectsList() {
           <button class="icon-btn" onclick="event.stopPropagation(); handleDeleteProspect('${p.id}', event)" title="supprimer (les scripts liés seront détachés)">🗑</button>
         </div>
       </div>
-      <span class="tag">${p.entreprise ? p.entreprise + ' · ' : ''}${formatDateTime(p.created_at)}</span>
-      ${p.notes ? `<p>${p.notes.slice(0, 140)}${p.notes.length > 140 ? '…' : ''}</p>` : ''}
+      <span class="tag">${escapeHtml(p.entreprise ? p.entreprise + ' · ' : '')}${formatDateTime(p.created_at)}</span>
+      ${p.accroche
+        ? `<span class="accroche-tag">✦ accroche trouvée</span><p>${escapeHtml(p.accroche.slice(0, 140))}${p.accroche.length > 140 ? '…' : ''}</p>`
+        : `<span class="accroche-tag missing">aucune raison de le contacter — ouvre la fiche</span>
+           ${p.notes ? `<p>${escapeHtml(p.notes.slice(0, 140))}${p.notes.length > 140 ? '…' : ''}</p>` : ''}`}
     </div>
   `).join('');
 }
@@ -221,6 +226,10 @@ async function openProspectDetail(id) {
   }
 
   document.getElementById('prospectModalNotes').value = p.notes || '';
+  document.getElementById('prospectModalSite').value = p.site_url || '';
+
+  renderAccroche(p.accroche);
+  document.getElementById('accrocheResults').innerHTML = '';
 
   document.getElementById('prospectModal').classList.remove('hidden');
   await renderProspectTimeline(id);
@@ -229,6 +238,127 @@ async function openProspectDetail(id) {
 function closeProspectModal() {
   document.getElementById('prospectModal').classList.add('hidden');
   currentProspectId = null;
+}
+
+/* ================================================================
+   ACCROCHES — pourquoi écrire à ce prospect aujourd'hui
+
+   Le reste de la page gère des informations que l'utilisateur possède
+   déjà (nom, entreprise, notes). Ce bloc-là produit celle qui lui
+   manque, et qui décide si son premier message sera lu : un fait
+   concret observé sur le site du prospect.
+   ================================================================ */
+
+function renderAccroche(accroche) {
+  const bloc = document.getElementById('accrocheCurrent');
+  const vide = document.getElementById('accrocheEmpty');
+
+  if (!accroche) {
+    bloc.classList.add('hidden');
+    vide.classList.remove('hidden');
+    return;
+  }
+
+  document.getElementById('accrocheCurrentText').textContent = accroche;
+  bloc.classList.remove('hidden');
+  vide.classList.add('hidden');
+}
+
+async function enregistrerAccroche(valeur) {
+  const { error } = await supabaseClient
+    .from('prospects')
+    .update({ accroche: valeur, updated_at: new Date().toISOString() })
+    .eq('id', currentProspectId);
+
+  if (error) {
+    showToast('Erreur lors de la sauvegarde : ' + error.message, 'failed');
+    return false;
+  }
+  await renderProspectsList();
+  return true;
+}
+
+async function handleChooseAccroche(index) {
+  const choix = dernieresAccroches[index];
+  if (!choix || !currentProspectId) return;
+
+  // On stocke le fait ET l'angle : le fait seul ("ils recrutent un
+  // ébéniste") ne dit pas au générateur quoi en faire, l'angle seul
+  // perd la preuve vérifiable qui rend le message crédible.
+  const texte = `${choix.fait} — ${choix.angle}`;
+
+  if (await enregistrerAccroche(texte)) {
+    renderAccroche(texte);
+    document.getElementById('accrocheResults').innerHTML = '';
+    showToast('Accroche retenue. Tous tes messages pour ce prospect partiront de là.', 'info');
+  }
+}
+
+async function handleClearAccroche() {
+  if (!currentProspectId) return;
+  if (await enregistrerAccroche(null)) renderAccroche(null);
+}
+
+let dernieresAccroches = [];
+
+async function handleFindAccroches() {
+  if (!currentProspectId) return;
+
+  const site = document.getElementById('prospectModalSite').value.trim();
+  if (!site) {
+    showToast("Renseigne l'adresse de son site pour que Pitchly puisse le lire.", 'failed');
+    return;
+  }
+
+  const btn = document.getElementById('accrocheBtn');
+  const resultats = document.getElementById('accrocheResults');
+  btn.disabled = true;
+  btn.textContent = 'lecture du site…';
+  resultats.innerHTML = '<p class="empty-state">Pitchly lit le site, ça prend quelques secondes…</p>';
+
+  const p = lastProspects.find(x => x.id === currentProspectId);
+
+  try {
+    const response = await fetch('/api/accroches', {
+      method: 'POST',
+      headers: await authHeaders(),
+      body: JSON.stringify({
+        url: site,
+        prospect: p ? { nom: p.nom, entreprise: p.entreprise, notes: p.notes } : null,
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      if (data.upgrade) showQuotaExhausted(data.error);
+      resultats.innerHTML = `<p class="empty-state">${escapeHtml(data.error || 'Analyse impossible.')}</p>`;
+      return;
+    }
+
+    currentProfile = applyQuotaFromServer(currentProfile, data.quota);
+    dernieresAccroches = data.accroches;
+
+    // L'adresse est conservée sur la fiche : elle resservira à chaque
+    // fois qu'on voudra rafraîchir les angles sur ce prospect.
+    await supabaseClient.from('prospects')
+      .update({ site_url: site }).eq('id', currentProspectId);
+
+    resultats.innerHTML = data.accroches.map((a, i) => `
+      <div class="accroche-card">
+        <p class="acc-fait">${escapeHtml(a.fait)}</p>
+        <p class="acc-angle">${escapeHtml(a.angle)}</p>
+        ${a.ouverture ? `<p class="acc-ouverture">« ${escapeHtml(a.ouverture)} »</p>` : ''}
+        ${a.pourquoi ? `<p class="acc-pourquoi">${escapeHtml(a.pourquoi)}</p>` : ''}
+        <button class="btn-text acc-choose" onclick="handleChooseAccroche(${i})">retenir cet angle →</button>
+      </div>`).join('');
+
+  } catch {
+    resultats.innerHTML = '<p class="empty-state">Erreur réseau, réessaie dans un instant.</p>';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '✦ trouver des angles';
+  }
 }
 
 async function handleSaveProspectEdits() {
@@ -241,6 +371,7 @@ async function handleSaveProspectEdits() {
   const statut = document.getElementById('prospectModalStatut').value;
   const secteur = readSecteur('prospectModalSecteur', 'prospectModalSecteurAutre');
   const notes = document.getElementById('prospectModalNotes').value.trim();
+  const siteUrl = document.getElementById('prospectModalSite').value.trim();
 
   const { error } = await supabaseClient
     .from('prospects')
@@ -250,6 +381,7 @@ async function handleSaveProspectEdits() {
       statut,
       secteur: secteur || null,
       notes: notes || null,
+      site_url: siteUrl || null,
       updated_at: new Date().toISOString(),
     })
     .eq('id', currentProspectId);

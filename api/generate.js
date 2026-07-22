@@ -74,6 +74,16 @@ export default async function handler(req, res) {
   // Contexte du prospect précis sélectionné (fiche CRM + historique des
   // échanges déjà eus avec lui) — sans ça, le générateur ignore tout du
   // prospect en dehors du champ "contexte" libre.
+  // L'accroche est passée AVANT le reste et présentée comme une
+  // contrainte, pas comme du contexte : c'est le fait vérifiable qui
+  // justifie ce message-là à ce moment-là. Noyée dans les notes, elle
+  // finissait en vague allusion — or c'est elle qui fait la différence
+  // entre un email lu et un email supprimé.
+  const blocAccroche = prospect?.accroche
+    ? `\n\nRAISON D'ÉCRIRE À CE PROSPECT AUJOURD'HUI (fait observé sur son site) :\n${prospect.accroche}\n` +
+      `Ce fait doit apparaître explicitement dans les deux premières phrases, formulé naturellement. Il prouve au prospect qu'on a regardé son activité avant de lui écrire. Ne le déforme pas et n'invente rien autour.`
+    : '';
+
   const blocProspect = prospect
     ? `\n\nInfos sur CE prospect précis, à prendre en compte pour adapter le script à sa situation :\n` +
       `- nom : ${prospect.nom}${prospect.entreprise ? `, entreprise : ${prospect.entreprise}` : ''}${prospect.secteur ? `, secteur : ${prospect.secteur}` : ''}\n` +
@@ -92,7 +102,7 @@ Ton client vend une offre de type "${offre}" à un panier moyen de ${panier}.
 Génère un script de vente pour un ${canal}, dans une situation de "${situation.replace('_', ' ')}".
 ${canalInfo.format}
 Ton souhaité : ${ton}. ${adresseInstruction}
-${contexte ? `Contexte supplémentaire donné par l'utilisateur : ${contexte}` : ''}${blocProspect}${blocExemples}${blocStyleProfile}
+${contexte ? `Contexte supplémentaire donné par l'utilisateur : ${contexte}` : ''}${blocAccroche}${blocProspect}${blocExemples}${blocStyleProfile}
 
 Évite tout jargon commercial générique ("offre exceptionnelle", "n'hésitez pas à", "je me permets de vous contacter", "saisissez cette opportunité", "n'attendez plus") — écris comme un vrai indépendant parlerait, pas comme une publicité.
 Rédige un premier brouillon, relis-le silencieusement, corrige-le si besoin pour respecter strictement toutes les consignes ci-dessus, puis ne renvoie que cette version finale.

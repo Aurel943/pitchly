@@ -338,3 +338,16 @@ alter table public.prospects add column if not exists opted_out_at timestamptz;
 -- périmètre de l'update client (colonne séparée ou trigger de garde).
 -- ================================================================
 alter table public.profiles add column if not exists plan text not null default 'free';
+
+-- ================================================================
+-- ACCROCHE — la raison d'écrire à ce prospect aujourd'hui.
+--
+-- Distincte de "notes" volontairement : les notes sont ce que le
+-- vendeur a retenu de ses échanges, l'accroche est un fait vérifiable
+-- observé sur le site du prospect (voir /api/accroches) qui justifie
+-- la prise de contact. Les mélanger ferait disparaître l'accroche
+-- sous les notes au bout de deux échanges, alors que c'est elle qui
+-- décide si le premier message est lu.
+-- ================================================================
+alter table public.prospects add column if not exists site_url text;
+alter table public.prospects add column if not exists accroche text;

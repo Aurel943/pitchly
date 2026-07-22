@@ -91,6 +91,18 @@ function showQuotaExhausted(message) {
   }
 }
 
+// Échappe une chaîne avant insertion dans du innerHTML.
+//
+// Indispensable dès qu'on affiche du texte qui ne vient pas de nous :
+// les accroches sont dérivées du site web d'un prospect, c'est-à-dire
+// d'une page que n'importe qui contrôle. Sans échappement, un site
+// piégé pourrait faire exécuter du script dans la session du vendeur.
+function escapeHtml(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
 // Formate une date Supabase (ISO) en "8 juil. 2026 · 20:34"
 function formatDateTime(isoString) {
   const d = new Date(isoString);

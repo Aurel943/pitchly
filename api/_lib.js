@@ -161,7 +161,10 @@ export function moisCourant() {
 // même seconde peuvent n'en décompter qu'une. C'est un dépassement d'une
 // unité sur un quota mensuel, pas la peine d'une transaction pour ça.
 async function consommerGeneration(user) {
-  const rows = await sbFetch(`profiles?id=eq.${user.id}&select=plan,quota_used,quota_month`);
+  // On récupère aussi le profil métier au passage : la requête est déjà
+  // faite, et une route qui le lit ici n'a pas à croire le secteur et le
+  // panier que le navigateur lui envoie.
+  const rows = await sbFetch(`profiles?id=eq.${user.id}&select=plan,quota_used,quota_month,secteur,offre,panier,style_profile`);
   const profile = rows?.[0];
   if (!profile) {
     return { ok: false, status: 403, error: "Profil introuvable — complète ton profil avant de générer." };
@@ -186,7 +189,7 @@ async function consommerGeneration(user) {
     body: { quota_used: used + 1, quota_month: mois },
   });
 
-  return { ok: true, plan, limite, used: used + 1 };
+  return { ok: true, plan, limite, used: used + 1, profile };
 }
 
 // Vérifie le quota de campagnes du mois avant d'en lancer une nouvelle.
@@ -232,7 +235,11 @@ export async function exigerGeneration(req, res) {
     return null;
   }
 
-  return { user, quota: { used: verdict.used, limite: verdict.limite, plan: verdict.plan } };
+  return {
+    user,
+    profil: verdict.profile,
+    quota: { used: verdict.used, limite: verdict.limite, plan: verdict.plan },
+  };
 }
 
 /* ---------------------------------------------------------------
