@@ -434,8 +434,27 @@ a.plan-badge:hover{color:var(--paper);border-color:rgba(217,224,222,.35);}
    plutôt que de disparaître quand la place manque. */
 .field-inline{display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap;}
 .field-inline input{flex:1 1 180px;min-width:0;}
-.btn-compact{padding:12px 18px;font-size:13.5px;white-space:nowrap;flex-shrink:0;}
+/* width:auto est indispensable : .btn-primary impose width:100%, ce qui
+   faisait réclamer toute la ligne au bouton et renvoyait le champ
+   au-dessus de lui. */
+.btn-compact{width:auto;padding:12px 18px;font-size:13.5px;white-space:nowrap;flex-shrink:0;}
 @media(max-width:560px){.btn-compact{width:100%;}}
+
+/* Bloc d'accueil de la page prospects. Bordure dorée : c'est le point
+   d'entrée du produit, il doit se distinguer d'une carte ordinaire sans
+   pour autant crier. */
+.card.starter{border:1px solid rgba(214,163,67,.45);}
+.starter-lead{font-size:14.5px;color:var(--text-muted);margin:-4px 0 18px;max-width:58ch;}
+.starter-create{margin-top:22px;padding-top:20px;border-top:1px solid rgba(22,41,44,.12);}
+.starter-chosen{font-size:14px;color:var(--ink);background:rgba(214,163,67,.12);border-radius:12px;padding:14px 16px;margin-bottom:18px;}
+
+/* Création manuelle repliée : elle reste accessible pour un prospect
+   rencontré hors ligne, mais ne concurrence plus le chemin principal. */
+.card-collapsible summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;}
+.card-collapsible summary::-webkit-details-marker{display:none;}
+.card-collapsible summary::after{content:'+';margin-left:auto;font-size:18px;color:var(--text-muted);transition:transform .3s var(--ease);}
+.card-collapsible[open] summary::after{transform:rotate(45deg);}
+.card-collapsible[open] summary{margin-bottom:18px;}
 
 .accroche-tag{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.03em;padding:3px 9px;border-radius:100px;background:rgba(214,163,67,.16);color:var(--gold-dim);margin-bottom:6px;}
 .accroche-tag.missing{background:rgba(91,110,112,.1);color:var(--text-muted);}

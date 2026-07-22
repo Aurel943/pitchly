@@ -194,6 +194,19 @@ function extraireTexte(html) {
   };
 }
 
+// Devine le nom de l'entreprise à partir du titre de la page, pour
+// pré-remplir la fiche prospect. Les titres suivent presque toujours la
+// forme "Nom — baseline" ou "Nom | Ville" : on garde le premier segment.
+//
+// Fait ici plutôt que par Claude : c'est une découpe de chaîne, la faire
+// écrire par un modèle coûterait des tokens pour un résultat moins
+// prévisible. Le champ reste modifiable côté utilisateur de toute façon.
+function entrepriseProbable(titre) {
+  const premier = String(titre || '').split(/\s+[—–|·:-]\s+/)[0].trim();
+  // Un segment trop long n'est pas un nom mais une phrase d'accroche.
+  return premier.length >= 2 && premier.length <= 60 ? premier : '';
+}
+
 function parseAccroches(brut) {
   const texte = String(brut || '');
   const debut = texte.indexOf('[');
@@ -216,7 +229,7 @@ function parseAccroches(brut) {
   }
 }
 
-export { ipInterdite, extraireTexte, parseAccroches };
+export { ipInterdite, extraireTexte, parseAccroches, entrepriseProbable };
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -308,7 +321,12 @@ Réponds UNIQUEMENT avec un tableau JSON valide, sans texte autour, sans bloc de
       return res.status(502).json({ error: "Les angles n'ont pas pu être lus. Réessaie dans un instant." });
     }
 
-    return res.status(200).json({ accroches, source: page.urlFinale, quota: acces.quota });
+    return res.status(200).json({
+      accroches,
+      entreprise: entrepriseProbable(titre),
+      source: page.urlFinale,
+      quota: acces.quota,
+    });
 
   } catch (err) {
     return res.status(500).json({ error: 'Erreur serveur : ' + err.message });

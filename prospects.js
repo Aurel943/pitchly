@@ -41,7 +41,154 @@ function renderProfilePill(profile) {
 
 
 /* ================================================================
-   CRÉATION D'UN PROSPECT
+   PAR OÙ COMMENCER — analyser un site, puis créer la fiche
+
+   Le parcours part de la seule question que se pose vraiment quelqu'un
+   qui ne sait pas prospecter : « j'ai cette entreprise en tête,
+   qu'est-ce que je peux bien lui dire ? ». La fiche prospect n'est
+   créée qu'à la fin, une fois l'angle trouvé — lui demander d'abord de
+   remplir un formulaire pour un prospect dont il ne sait pas encore
+   quoi faire, c'était lui faire payer le prix avant la valeur.
+   ================================================================ */
+
+let anglesTrouves = [];
+let angleRetenu = null;
+let entrepriseDevinee = '';
+let siteAnalyse = '';
+
+// Rendu partagé entre le bloc d'accueil et la fiche prospect — deux
+// copies du même gabarit finiraient par diverger.
+function renderAccrocheCards(accroches, handler) {
+  return accroches.map((a, i) => `
+    <div class="accroche-card">
+      <p class="acc-fait">${escapeHtml(a.fait)}</p>
+      <p class="acc-angle">${escapeHtml(a.angle)}</p>
+      ${a.ouverture ? `<p class="acc-ouverture">« ${escapeHtml(a.ouverture)} »</p>` : ''}
+      ${a.pourquoi ? `<p class="acc-pourquoi">${escapeHtml(a.pourquoi)}</p>` : ''}
+      <button class="btn-text acc-choose" onclick="${handler}(${i})">retenir cet angle →</button>
+    </div>`).join('');
+}
+
+// Le fait ET l'angle sont conservés ensemble : le fait seul ne dit pas
+// au générateur quoi en faire, l'angle seul perd la preuve vérifiable
+// qui rend le message crédible.
+function texteAccroche(a) {
+  return `${a.fait} — ${a.angle}`;
+}
+
+async function appelerAccroches({ url, prospect }) {
+  const response = await fetch('/api/accroches', {
+    method: 'POST',
+    headers: await authHeaders(),
+    body: JSON.stringify({ url, prospect }),
+  });
+  const data = await response.json();
+  return { ok: response.ok, data };
+}
+
+async function handleAnalyseSite() {
+  const site = document.getElementById('starterSiteInput').value.trim();
+  if (!site) {
+    showToast("Colle l'adresse du site de l'entreprise que tu veux contacter.", 'failed');
+    return;
+  }
+
+  const btn = document.getElementById('starterBtn');
+  const zone = document.getElementById('starterResults');
+  document.getElementById('starterCreate').classList.add('hidden');
+
+  btn.disabled = true;
+  btn.textContent = 'lecture du site…';
+  zone.innerHTML = '<p class="empty-state">Pitchly lit le site, ça prend quelques secondes…</p>';
+
+  try {
+    const { ok, data } = await appelerAccroches({ url: site, prospect: null });
+
+    if (!ok) {
+      if (data.upgrade) showQuotaExhausted(data.error);
+      zone.innerHTML = `<p class="empty-state">${escapeHtml(data.error || 'Analyse impossible.')}</p>`;
+      return;
+    }
+
+    currentProfile = applyQuotaFromServer(currentProfile, data.quota);
+    anglesTrouves = data.accroches;
+    entrepriseDevinee = data.entreprise || '';
+    siteAnalyse = site;
+
+    zone.innerHTML = renderAccrocheCards(data.accroches, 'handleRetenirAngle');
+
+  } catch {
+    zone.innerHTML = '<p class="empty-state">Erreur réseau, réessaie dans un instant.</p>';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '✦ trouver des angles';
+  }
+}
+
+function handleRetenirAngle(index) {
+  const choix = anglesTrouves[index];
+  if (!choix) return;
+
+  angleRetenu = choix;
+  document.getElementById('starterChosen').textContent = texteAccroche(choix);
+  document.getElementById('starterEntrepriseInput').value = entrepriseDevinee;
+
+  const bloc = document.getElementById('starterCreate');
+  bloc.classList.remove('hidden');
+  bloc.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  document.getElementById('starterNomInput').focus();
+}
+
+function annulerCreationDepuisAngle() {
+  angleRetenu = null;
+  document.getElementById('starterCreate').classList.add('hidden');
+}
+
+async function handleCreateFromAngle() {
+  if (!angleRetenu) return;
+
+  const nom = document.getElementById('starterNomInput').value.trim();
+  const entreprise = document.getElementById('starterEntrepriseInput').value.trim();
+  const email = document.getElementById('starterEmailInput').value.trim();
+
+  // Le nom du contact est le seul champ vraiment obligatoire : sans lui
+  // la fiche n'est identifiable ni dans la liste ni dans un message.
+  if (!nom) {
+    showToast('Donne au moins le nom de la personne à contacter.', 'failed');
+    document.getElementById('starterNomInput').focus();
+    return;
+  }
+
+  const { error } = await supabaseClient.from('prospects').insert({
+    user_id: currentUser.id,
+    nom,
+    entreprise: entreprise || null,
+    email: email || null,
+    site_url: siteAnalyse || null,
+    accroche: texteAccroche(angleRetenu),
+    statut: 'nouveau',
+  });
+
+  if (error) {
+    showToast('Erreur lors de la création : ' + error.message, 'failed');
+    return;
+  }
+
+  document.getElementById('starterSiteInput').value = '';
+  document.getElementById('starterNomInput').value = '';
+  document.getElementById('starterEntrepriseInput').value = '';
+  document.getElementById('starterEmailInput').value = '';
+  document.getElementById('starterResults').innerHTML = '';
+  annulerCreationDepuisAngle();
+  anglesTrouves = [];
+
+  showToast(`Fiche "${nom}" créée avec son accroche. Tu peux lui écrire.`, 'info');
+  await renderProspectsList();
+}
+
+
+/* ================================================================
+   CRÉATION D'UN PROSPECT À LA MAIN
    ================================================================ */
 
 function readSecteur(selectId, autreInputId) {
@@ -282,10 +429,7 @@ async function handleChooseAccroche(index) {
   const choix = dernieresAccroches[index];
   if (!choix || !currentProspectId) return;
 
-  // On stocke le fait ET l'angle : le fait seul ("ils recrutent un
-  // ébéniste") ne dit pas au générateur quoi en faire, l'angle seul
-  // perd la preuve vérifiable qui rend le message crédible.
-  const texte = `${choix.fait} — ${choix.angle}`;
+  const texte = texteAccroche(choix);
 
   if (await enregistrerAccroche(texte)) {
     renderAccroche(texte);
@@ -319,18 +463,12 @@ async function handleFindAccroches() {
   const p = lastProspects.find(x => x.id === currentProspectId);
 
   try {
-    const response = await fetch('/api/accroches', {
-      method: 'POST',
-      headers: await authHeaders(),
-      body: JSON.stringify({
-        url: site,
-        prospect: p ? { nom: p.nom, entreprise: p.entreprise, notes: p.notes } : null,
-      }),
+    const { ok, data } = await appelerAccroches({
+      url: site,
+      prospect: p ? { nom: p.nom, entreprise: p.entreprise, notes: p.notes } : null,
     });
 
-    const data = await response.json();
-
-    if (!response.ok) {
+    if (!ok) {
       if (data.upgrade) showQuotaExhausted(data.error);
       resultats.innerHTML = `<p class="empty-state">${escapeHtml(data.error || 'Analyse impossible.')}</p>`;
       return;
@@ -344,14 +482,7 @@ async function handleFindAccroches() {
     await supabaseClient.from('prospects')
       .update({ site_url: site }).eq('id', currentProspectId);
 
-    resultats.innerHTML = data.accroches.map((a, i) => `
-      <div class="accroche-card">
-        <p class="acc-fait">${escapeHtml(a.fait)}</p>
-        <p class="acc-angle">${escapeHtml(a.angle)}</p>
-        ${a.ouverture ? `<p class="acc-ouverture">« ${escapeHtml(a.ouverture)} »</p>` : ''}
-        ${a.pourquoi ? `<p class="acc-pourquoi">${escapeHtml(a.pourquoi)}</p>` : ''}
-        <button class="btn-text acc-choose" onclick="handleChooseAccroche(${i})">retenir cet angle →</button>
-      </div>`).join('');
+    resultats.innerHTML = renderAccrocheCards(data.accroches, 'handleChooseAccroche');
 
   } catch {
     resultats.innerHTML = '<p class="empty-state">Erreur réseau, réessaie dans un instant.</p>';

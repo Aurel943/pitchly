@@ -42,14 +42,67 @@
 
     <header class="page-head">
       <p class="page-kicker">prospects</p>
-      <h1>Chaque prospect, <em>son contexte.</em></h1>
+      <h1>Qui contacter, <em>et pourquoi lui.</em></h1>
     </header>
 
-    <!-- ============ AJOUTER UN PROSPECT ============ -->
-    <div class="card">
-      <div class="card-label">
-        <span>ajouter un prospect</span>
+    <!-- ============ PAR OÙ COMMENCER ============
+         Point d'entrée de la page, et de fait du produit. Le parcours
+         part de la vraie question de l'utilisateur — « j'ai cette
+         entreprise en tête, qu'est-ce que je peux bien lui dire ? » —
+         au lieu de lui demander d'abord de remplir une fiche pour un
+         prospect dont il ne sait pas encore quoi faire.
+
+         La fiche se crée à la fin, pré-remplie par l'angle retenu. -->
+    <div class="card starter">
+      <div class="card-label"><span>par où commencer</span></div>
+      <p class="starter-lead">
+        Une entreprise en tête&nbsp;? Colle l'adresse de son site : Pitchly la lit et te donne
+        trois raisons concrètes de la contacter.
+      </p>
+
+      <div class="field-inline">
+        <input type="text" id="starterSiteInput" placeholder="atelier-marchand.fr">
+        <button class="btn-primary btn-compact" id="starterBtn" onclick="handleAnalyseSite()">
+          ✦ trouver des angles
+        </button>
       </div>
+
+      <div id="starterResults"></div>
+
+      <!-- Révélé une fois un angle retenu : on ne demande le nom du
+           contact qu'au moment où l'utilisateur sait quoi lui dire. -->
+      <div class="starter-create hidden" id="starterCreate">
+        <div class="card-label"><span>créer la fiche</span></div>
+        <p class="starter-chosen" id="starterChosen"></p>
+
+        <div class="field-row">
+          <div class="field">
+            <label>nom du contact</label>
+            <input type="text" id="starterNomInput" placeholder="ex : Julie Marchand">
+          </div>
+          <div class="field">
+            <label>entreprise</label>
+            <input type="text" id="starterEntrepriseInput" placeholder="ex : Atelier Marchand">
+          </div>
+        </div>
+
+        <div class="field">
+          <label>email (nécessaire pour lui envoyer une séquence)</label>
+          <input type="email" id="starterEmailInput" placeholder="prenom@entreprise.fr">
+        </div>
+
+        <div class="edit-actions">
+          <button class="btn-primary" onclick="handleCreateFromAngle()">créer la fiche prospect</button>
+          <button class="btn-text" onclick="annulerCreationDepuisAngle()">annuler</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ AJOUTER À LA MAIN ============
+         Reste disponible pour un prospect rencontré hors ligne, ou sans
+         site web — mais ce n'est plus le chemin par défaut. -->
+    <details class="card card-collapsible">
+      <summary class="card-label"><span>ajouter un prospect à la main</span></summary>
 
       <div class="field">
         <label>nom</label>
@@ -89,7 +142,7 @@
       <div class="field">
         <label>site web (recommandé)</label>
         <input type="text" id="prospectSiteInput" placeholder="ex : atelier-marchand.fr">
-        <p class="field-hint">c'est à partir de son site que Pitchly trouvera une raison concrète de lui écrire.</p>
+        <p class="field-hint">avec le site, tu pourras chercher une accroche depuis sa fiche.</p>
       </div>
 
       <div class="field">
@@ -100,7 +153,7 @@
       <button class="btn-primary" id="createProspectBtn" onclick="handleCreateProspect()">
         + ajouter le prospect
       </button>
-    </div>
+    </details>
 
     <!-- ============ MES PROSPECTS ============ -->
     <div class="card" id="saved">
