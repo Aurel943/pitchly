@@ -5,9 +5,10 @@
    et le couple objection/réponse peut être sauvegardé (table
    "saved_objections").
 
-   Partage le même quota mensuel que le générateur de script
-   (QUOTA_GRATUIT, getQuotaUsed, incrementQuotaUsed — définis dans
-   auth.js) pour ne pas multiplier les coûts d'API.
+   Partage le même quota mensuel que le générateur de script (une seule
+   colonne quota_used sur "profiles") pour ne pas multiplier les coûts
+   d'API. Le décompte est fait par le serveur, qui le renvoie dans la
+   réponse — ici on ne fait que l'afficher.
 
    Même gate d'accès que app.html : session + profil complet, sinon
    retour vers dashboard.html qui gère la complétion.
@@ -78,13 +79,20 @@ function renderProfilePill(profile) {
 }
 
 function updateQuotaDisplay() {
-  const restant = Math.max(0, QUOTA_GRATUIT - getQuotaUsed(currentProfile));
+  const limite = limiteGenerations(currentProfile);
+  const btn = document.getElementById('generateObjectionBtn');
+
+  if (limite === null) {
+    document.getElementById('quotaDisplay').textContent = 'générations illimitées';
+    return;
+  }
+
+  const restant = Math.max(0, limite - getQuotaUsed(currentProfile));
   document.getElementById('quotaDisplay').textContent =
     `${restant} génération${restant > 1 ? 's' : ''} restante${restant > 1 ? 's' : ''}`;
 
   // Quota épuisé : le bouton le dit clairement au lieu de laisser cliquer
   // dans le vide (l'état est levé au changement de mois, côté getQuotaUsed).
-  const btn = document.getElementById('generateObjectionBtn');
   if (restant === 0) {
     btn.disabled = true;
     btn.textContent = 'quota mensuel épuisé';
@@ -137,8 +145,10 @@ document.getElementById('objectionInput').addEventListener('keydown', (e) => {
 });
 
 async function handleGenerateObjection() {
-  if (getQuotaUsed(currentProfile) >= QUOTA_GRATUIT) {
-    showToast('Quota gratuit épuisé pour ce mois-ci — il se réinitialise le 1er du mois.', 'failed');
+  // Pré-contrôle de confort seulement : le vrai refus vient du serveur (402).
+  const limite = limiteGenerations(currentProfile);
+  if (limite !== null && getQuotaUsed(currentProfile) >= limite) {
+    showQuotaExhausted('Quota épuisé pour ce mois-ci.');
     return;
   }
 
@@ -158,7 +168,7 @@ async function handleGenerateObjection() {
 
     const response = await fetch('/api/objections', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: await authHeaders(),
       body: JSON.stringify({
         secteur: LABELS_SECTEUR[currentProfile.secteur] || currentProfile.secteur,
         offre: currentProfile.offre,
@@ -173,9 +183,12 @@ async function handleGenerateObjection() {
     const data = await response.json();
 
     if (!response.ok) {
-      showToast('Erreur : ' + (data.error || 'impossible de générer la réponse'), 'failed');
+      if (data.upgrade) showQuotaExhausted(data.error);
+      else showToast('Erreur : ' + (data.error || 'impossible de générer la réponse'), 'failed');
       return;
     }
+
+    currentProfile = applyQuotaFromServer(currentProfile, data.quota);
 
     document.getElementById('objectionOutputText').textContent = data.reponse;
     document.getElementById('objectionOutputMeta').innerHTML = objection.slice(0, 60) +
@@ -188,8 +201,6 @@ async function handleGenerateObjection() {
     // amène le résultat dans le viewport (sur mobile il naît sous le fold)
     outputCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     document.getElementById('saveObjectionBtn').classList.remove('active');
-
-    currentProfile = await incrementQuotaUsed(currentProfile);
 
   } catch (err) {
     showToast('Erreur réseau, réessaie dans un instant.', 'failed');

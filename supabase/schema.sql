@@ -323,3 +323,18 @@ create index if not exists email_events_campaign_idx on public.email_events(camp
 -- Désinscription : un prospect qui répond STOP ne doit plus jamais
 -- recevoir d'email de ce vendeur, y compris via une future campagne.
 alter table public.prospects add column if not exists opted_out_at timestamptz;
+
+-- ================================================================
+-- PLANS
+-- 'free' | 'solo' | 'pro'. Les limites associées vivent dans
+-- api/_lib.js (PLANS) et sont appliquées côté serveur : le quota du
+-- navigateur n'est qu'un affichage.
+--
+-- Pas de policy d'update restreinte sur cette colonne pour l'instant :
+-- la policy "profiles: update own" laisse un utilisateur passer son
+-- propre plan à 'pro' depuis la console. C'est acceptable tant qu'il
+-- n'y a pas de paiement — le jour où Stripe arrive, le webhook devra
+-- écrire ce champ en service_role et la colonne devra sortir du
+-- périmètre de l'update client (colonne séparée ou trigger de garde).
+-- ================================================================
+alter table public.profiles add column if not exists plan text not null default 'free';

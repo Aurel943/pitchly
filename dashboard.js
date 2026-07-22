@@ -101,8 +101,10 @@ async function handleOnboardingSubmit() {
 async function renderDashboard(profile) {
   document.getElementById('welcomeMessage').textContent = `bonjour ${profile.nom}`;
 
-  const restant = Math.max(0, QUOTA_GRATUIT - getQuotaUsed(profile));
-  document.getElementById('quotaDisplay').textContent = `${restant} générations restantes`;
+  const limite = limiteGenerations(profile);
+  document.getElementById('quotaDisplay').textContent = limite === null
+    ? 'générations illimitées'
+    : `${Math.max(0, limite - getQuotaUsed(profile))} générations restantes`;
 
   document.getElementById('navAvatarInitial').textContent = profile.nom ? profile.nom[0].toUpperCase() : '?';
   document.getElementById('navAvatarName').textContent = profile.nom || 'mon compte';

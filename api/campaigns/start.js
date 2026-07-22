@@ -21,6 +21,7 @@ import {
   joursDepuisLancement,
   prochainCreneauOuvre,
   destinataireInterditEnTest,
+  verifierQuotaCampagnes,
 } from '../_lib.js';
 
 // Garde-fou simple : on ne cherche pas à valider parfaitement une
@@ -110,6 +111,14 @@ export default async function handler(req, res) {
           error: 'Une séquence est déjà en cours sur ce prospect. Arrête-la avant d\'en lancer une autre.',
         });
       }
+    }
+
+    // --- Quota de campagnes du plan. Contrôlé ici, après les validations
+    // de fond : refuser d'abord sur le quota ferait croire à une limite de
+    // compte alors que la séquence était de toute façon inenvoyable.
+    const quota = await verifierQuotaCampagnes(user);
+    if (!quota.ok) {
+      return res.status(402).json({ error: quota.error, upgrade: true });
     }
 
     // --- Identité d'envoi : créée à la volée au premier lancement, en

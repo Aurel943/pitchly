@@ -6,7 +6,13 @@
 
    La clé API vient de process.env.ANTHROPIC_API_KEY (même variable
    que /api/generate).
+
+   Route authentifiée et décomptée sur le quota du plan, comme les deux
+   autres générateurs : le site est public, l'URL seule ne doit jamais
+   suffire à faire travailler Claude à nos frais.
    ================================================================ */
+
+import { exigerGeneration } from './_lib.js';
 
 // Retire le markdown que Claude ajoute parfois (**gras**, *italique*,
 // titres #) même quand on le lui interdit — ces réponses sont envoyées
@@ -23,6 +29,9 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Méthode non autorisée' });
   }
+
+  const acces = await exigerGeneration(req, res);
+  if (!acces) return; // exigerGeneration a déjà répondu (401 ou 402)
 
   const { secteur, offre, objection, exemples, styleProfile, adresse, prospect } = req.body;
 
@@ -91,7 +100,7 @@ Réponds uniquement avec le texte de la réponse, sans introduction, sans commen
     // raisonnement en tête donnerait content[0].text vide.
     const brut = (data.content || []).find(b => b.type === 'text')?.text || '';
     const reponse = stripMarkdown(brut);
-    return res.status(200).json({ reponse });
+    return res.status(200).json({ reponse, quota: acces.quota });
 
   } catch (err) {
     return res.status(500).json({ error: 'Erreur serveur : ' + err.message });

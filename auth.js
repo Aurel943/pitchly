@@ -11,10 +11,36 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 let currentUser = null;
 
-// Quota mensuel gratuit — partagé entre le générateur de script et le
-// générateur de réponses aux objections (une seule et même colonne
-// quota_used/quota_month sur "profiles", pour borner le coût total d'API).
-const QUOTA_GRATUIT = 5;
+// Copie D'AFFICHAGE de la grille tarifaire. L'original fait autorité
+// dans api/_lib.js : c'est le serveur qui refuse une génération hors
+// quota, ici on ne fait qu'afficher le compteur et proposer l'upgrade.
+// Toute divergence entre les deux se voit comme un compteur qui ment,
+// jamais comme un quota contourné.
+const PLANS_AFFICHAGE = {
+  free: { label: 'Découverte', prix: '0 €', generations: 5, campagnes: 1 },
+  solo: { label: 'Solo', prix: '29 €', generations: 100, campagnes: 50 },
+  pro: { label: 'Pro', prix: '59 €', generations: null, campagnes: 300 },
+};
+
+function planDe(profile) {
+  return PLANS_AFFICHAGE[profile?.plan] ? profile.plan : 'free';
+}
+
+function limiteGenerations(profile) {
+  return PLANS_AFFICHAGE[planDe(profile)].generations;
+}
+
+// En-têtes des appels aux routes /api : toutes exigent désormais une
+// session (le site n'a plus de mot de passe global qui les protégeait).
+// Le jeton passe par X-Pitchly-Token — voir requireUser dans api/_lib.js
+// pour la raison historique du choix de cet en-tête.
+async function authHeaders() {
+  const session = await getSession();
+  return {
+    'Content-Type': 'application/json',
+    'X-Pitchly-Token': session?.access_token || '',
+  };
+}
 
 // Libellés lisibles pour l'affichage (les <select> stockent des codes courts)
 const LABELS_SECTEUR = {
@@ -43,12 +69,26 @@ function getQuotaUsed(profile) {
   return profile.quota_month === currentMonthKey() ? profile.quota_used : 0;
 }
 
-async function incrementQuotaUsed(profile) {
-  const usedThisMonth = getQuotaUsed(profile);
-  return saveProfile({
-    quota_used: usedThisMonth + 1,
-    quota_month: currentMonthKey(),
-  });
+// Reporte sur le profil en mémoire le décompte que le serveur vient
+// d'appliquer. Le front n'incrémente plus lui-même : quand les deux
+// côtés comptaient, une génération en valait deux.
+function applyQuotaFromServer(profile, quota) {
+  if (!profile || !quota) return profile;
+  profile.quota_used = quota.used;
+  profile.quota_month = currentMonthKey();
+  return profile;
+}
+
+// Message unique pour un refus de quota (HTTP 402), avec le renvoi vers
+// les tarifs — c'est le moment précis où l'utilisateur a une raison de
+// payer, autant ne pas le laisser dans une impasse.
+function showQuotaExhausted(message) {
+  showToast((message || 'Quota mensuel épuisé.') + ' Voir les formules →', 'failed');
+  const toast = document.getElementById('toast');
+  if (toast) {
+    toast.style.cursor = 'pointer';
+    toast.onclick = () => { window.location.href = 'index.html#tarifs'; };
+  }
 }
 
 // Formate une date Supabase (ISO) en "8 juil. 2026 · 20:34"
@@ -185,7 +225,7 @@ async function maybeRefreshStyleProfile(profile) {
   try {
     const response = await fetch('/api/refresh-style', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: await authHeaders(),
       // les plus récents suffisent à dégager les patterns actuels, et ça
       // borne la taille (et le coût) de l'appel même après des centaines de retours
       body: JSON.stringify({ items: rated.slice(0, 30) }),

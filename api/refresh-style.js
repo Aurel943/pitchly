@@ -12,7 +12,15 @@
 
    La clé API vient de process.env.ANTHROPIC_API_KEY (même variable
    que /api/generate et /api/objections).
+
+   Authentifiée mais NON décomptée du quota : cette synthèse se
+   déclenche toute seule après une notation 👍/👎, l'utilisateur ne la
+   demande jamais explicitement. Lui facturer une génération qu'il n'a
+   pas choisie le dissuaderait de noter ses retours — or ces notes sont
+   exactement ce qui rend l'outil meilleur avec le temps.
    ================================================================ */
+
+import { requireUser } from './_lib.js';
 
 // Retire le markdown que Claude ajoute parfois (**gras**, *italique*) —
 // ce texte est réinjecté brut dans d'autres prompts et affiché tel quel
@@ -27,6 +35,11 @@ function stripMarkdown(text) {
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Méthode non autorisée' });
+  }
+
+  const user = await requireUser(req);
+  if (!user) {
+    return res.status(401).json({ error: 'Session expirée — reconnecte-toi.' });
   }
 
   const { items } = req.body;

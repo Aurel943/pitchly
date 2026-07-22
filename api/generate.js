@@ -9,7 +9,14 @@
 
    La clé API vient de process.env.ANTHROPIC_API_KEY — une variable
    d'environnement configurée sur Vercel, jamais écrite dans le code.
+
+   Cette route est authentifiée et décompte le quota du plan avant
+   d'appeler Claude (voir exigerGeneration dans _lib.js). Sans ça, le
+   site étant public, l'URL suffirait à faire écrire Claude à nos frais
+   en boucle par n'importe qui.
    ================================================================ */
+
+import { exigerGeneration } from './_lib.js';
 
 // Un email et un message LinkedIn n'ont ni la même longueur naturelle ni
 // la même structure — leur donner le même budget de tokens gaspille des
@@ -43,6 +50,9 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Méthode non autorisée' });
   }
+
+  const acces = await exigerGeneration(req, res);
+  if (!acces) return; // exigerGeneration a déjà répondu (401 ou 402)
 
   const { secteur, offre, panier, canal, situation, ton, adresse, contexte, exemples, styleProfile, prospect } = req.body;
   const canalInfo = CANAL_GUIDANCE[canal] || { maxTokens: 400, format: '' };
@@ -118,7 +128,10 @@ Réponds uniquement avec le texte du script, sans introduction, sans commentaire
     // bloc de raisonnement se glissait en tête, content[0].text serait vide.
     const brut = (data.content || []).find(b => b.type === 'text')?.text || '';
     const texte = stripMarkdown(brut);
-    return res.status(200).json({ texte });
+    // On renvoie le quota tel que le serveur vient de le décompter : le
+    // front n'a plus à incrémenter de son côté, ce qui évitait de compter
+    // deux fois la même génération.
+    return res.status(200).json({ texte, quota: acces.quota });
 
   } catch (err) {
     return res.status(500).json({ error: 'Erreur serveur : ' + err.message });

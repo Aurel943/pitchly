@@ -5,15 +5,18 @@
    Les fichiers préfixés par "_" ne sont pas exposés comme routes par
    Vercel : c'est un module interne, jamais appelable depuis le web.
 
-   Trois responsabilités, volontairement séparées :
+   Quatre responsabilités, volontairement séparées :
      1. requireUser()  — vérifier qui parle, côté serveur
      2. sbFetch()      — parler à Supabase en service_role (hors RLS)
      3. sendEmail()    — parler à Resend
+     4. exigerGeneration() — identité + quota du plan, avant tout appel Claude
 
-   Pourquoi une vraie vérif d'identité ici, alors que /api/generate
-   n'en a pas : générer du texte coûte des tokens, envoyer un email
-   engage la réputation d'un domaine et peut spammer de vrais gens.
-   Une route d'envoi non authentifiée est un relais ouvert.
+   Toutes les routes sont authentifiées, sans exception. Une route de
+   génération ouverte est un proxy Claude gratuit que n'importe qui peut
+   vider ; une route d'envoi ouverte est un relais à spam. Le site n'a
+   plus de mot de passe global (le middleware Basic Auth a été supprimé
+   le 22/07/2026 pour ouvrir les inscriptions) : ces vérifications sont
+   désormais la seule protection du budget d'API.
    ================================================================ */
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://evygjcmaxmnfusrvbjkk.supabase.co';
@@ -56,15 +59,13 @@ const INBOUND_DOMAIN = process.env.INBOUND_DOMAIN || 'estiejoraa.resend.app';
 
 // Vérifie le JWT Supabase envoyé par le front.
 //
-// Le jeton voyage dans "X-Pitchly-Token" et NON dans "Authorization" :
-// tout le site est derrière un Basic Auth (voir middleware.js), qui
-// utilise déjà cet en-tête. Un fetch() qui pose "Authorization: Bearer"
-// écrase les identifiants Basic que le navigateur rejoue tout seul ; le
-// middleware ne reconnaît plus rien, répond 401 avec WWW-Authenticate,
-// et le navigateur redemande le mot de passe en boucle.
-//
-// Le repli sur "Authorization: Bearer" reste accepté pour les appels
-// hors navigateur (curl, tests), qui ne traversent pas ce conflit.
+// Le jeton voyage dans "X-Pitchly-Token", et "Authorization: Bearer"
+// n'est qu'un repli pour les appels hors navigateur (curl, tests).
+// Cet en-tête maison est un héritage du Basic Auth qui protégeait tout
+// le site : le navigateur y rejouait ses identifiants, et un fetch()
+// posant "Authorization" les écrasait, ce qui redemandait le mot de
+// passe en boucle. Le Basic Auth a disparu, mais la convention reste —
+// elle ne coûte rien et évite d'aller retoucher chaque appel du front.
 //
 // On ne décode pas le jeton nous-mêmes (il faudrait vérifier la
 // signature) : on demande à Supabase qui il est, ce qui valide
@@ -120,6 +121,118 @@ export async function sbFetch(path, { method = 'GET', body, prefer } = {}) {
     throw new Error(`Supabase ${res.status} sur ${path} : ${text.slice(0, 300)}`);
   }
   return text ? JSON.parse(text) : null;
+}
+
+/* ---------------------------------------------------------------
+   Plans et quotas
+   --------------------------------------------------------------- */
+
+// La grille tarifaire, définie une seule fois et faisant autorité.
+// Le front en a une copie d'affichage (PLANS_AFFICHAGE dans auth.js),
+// mais c'est bien celle-ci qui décide : un quota appliqué uniquement
+// dans le navigateur se contourne avec la console.
+//
+// generations : appels Claude par mois (null = illimité)
+// campagnes   : campagnes lancées par mois — l'axe qui porte le prix,
+//               parce que c'est lui qui porte à la fois notre coût
+//               d'envoi et la valeur perçue par le vendeur.
+export const PLANS = {
+  free: { label: 'Découverte', generations: 5, campagnes: 1 },
+  solo: { label: 'Solo', generations: 100, campagnes: 50 },
+  pro: { label: 'Pro', generations: null, campagnes: 300 },
+};
+
+export function planDe(profile) {
+  return PLANS[profile?.plan] ? profile.plan : 'free';
+}
+
+export function moisCourant() {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+}
+
+// Consomme une génération sur le quota du mois, ou refuse.
+//
+// Le compteur se remet à zéro par comparaison de "quota_month" plutôt
+// que par une tâche planifiée : il n'y a rien à déclencher le 1er du
+// mois, et un compte inactif pendant six mois repart juste à zéro.
+//
+// Lecture puis écriture, sans verrou : deux générations lancées dans la
+// même seconde peuvent n'en décompter qu'une. C'est un dépassement d'une
+// unité sur un quota mensuel, pas la peine d'une transaction pour ça.
+async function consommerGeneration(user) {
+  const rows = await sbFetch(`profiles?id=eq.${user.id}&select=plan,quota_used,quota_month`);
+  const profile = rows?.[0];
+  if (!profile) {
+    return { ok: false, status: 403, error: "Profil introuvable — complète ton profil avant de générer." };
+  }
+
+  const plan = planDe(profile);
+  const limite = PLANS[plan].generations;
+  const mois = moisCourant();
+  const used = profile.quota_month === mois ? (profile.quota_used || 0) : 0;
+
+  if (limite !== null && used >= limite) {
+    return {
+      ok: false,
+      status: 402,
+      error: `Tu as utilisé tes ${limite} générations du mois sur le plan ${PLANS[plan].label}.`,
+      upgrade: true,
+    };
+  }
+
+  await sbFetch(`profiles?id=eq.${user.id}`, {
+    method: 'PATCH',
+    body: { quota_used: used + 1, quota_month: mois },
+  });
+
+  return { ok: true, plan, limite, used: used + 1 };
+}
+
+// Vérifie le quota de campagnes du mois avant d'en lancer une nouvelle.
+//
+// Contrairement aux générations, on ne tient pas de compteur : on compte
+// les campagnes réellement créées depuis le 1er du mois. Une campagne est
+// une ligne durable, donc la source de vérité est déjà en base — un
+// compteur séparé ne pourrait que diverger d'elle.
+export async function verifierQuotaCampagnes(user) {
+  const profils = await sbFetch(`profiles?id=eq.${user.id}&select=plan`);
+  const plan = planDe(profils?.[0]);
+  const limite = PLANS[plan].campagnes;
+
+  const debutDuMois = `${moisCourant()}-01T00:00:00Z`;
+  const lancees = await sbFetch(
+    `campaigns?user_id=eq.${user.id}&created_at=gte.${debutDuMois}&select=id`
+  );
+
+  if ((lancees?.length || 0) >= limite) {
+    return {
+      ok: false,
+      error: plan === 'free'
+        ? "Le plan Découverte permet une campagne d'essai. Passe au plan Solo pour lancer tes vraies séquences."
+        : `Tu as lancé tes ${limite} campagnes du mois sur le plan ${PLANS[plan].label}.`,
+    };
+  }
+  return { ok: true };
+}
+
+// Portier commun aux trois routes de génération : identité, puis quota.
+// Renvoie le verdict, ou null après avoir déjà répondu à la requête —
+// l'appelant n'a qu'à sortir si c'est null.
+export async function exigerGeneration(req, res) {
+  const user = await requireUser(req);
+  if (!user) {
+    res.status(401).json({ error: 'Session expirée — reconnecte-toi pour générer.' });
+    return null;
+  }
+
+  const verdict = await consommerGeneration(user);
+  if (!verdict.ok) {
+    res.status(verdict.status).json({ error: verdict.error, upgrade: !!verdict.upgrade });
+    return null;
+  }
+
+  return { user, quota: { used: verdict.used, limite: verdict.limite, plan: verdict.plan } };
 }
 
 /* ---------------------------------------------------------------

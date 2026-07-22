@@ -110,11 +110,18 @@ function renderProfilePill(profile) {
 }
 
 function updateQuotaDisplay() {
-  const restant = Math.max(0, QUOTA_GRATUIT - getQuotaUsed(currentProfile));
+  const limite = limiteGenerations(currentProfile);
+  const btn = document.getElementById('generateBtn');
+
+  if (limite === null) {
+    document.getElementById('quotaDisplay').textContent = 'générations illimitées';
+    return;
+  }
+
+  const restant = Math.max(0, limite - getQuotaUsed(currentProfile));
   document.getElementById('quotaDisplay').textContent =
     `${restant} génération${restant > 1 ? 's' : ''} restante${restant > 1 ? 's' : ''}`;
 
-  const btn = document.getElementById('generateBtn');
   if (restant === 0) {
     btn.disabled = true;
     btn.textContent = 'quota mensuel épuisé';
@@ -160,8 +167,10 @@ function sequenceToPlainText(etapes, canal) {
 }
 
 async function handleGenerateSequence() {
-  if (getQuotaUsed(currentProfile) >= QUOTA_GRATUIT) {
-    showToast('Quota gratuit épuisé pour ce mois-ci — il se réinitialise le 1er du mois.', 'failed');
+  // Pré-contrôle de confort seulement : le vrai refus vient du serveur (402).
+  const limite = limiteGenerations(currentProfile);
+  if (limite !== null && getQuotaUsed(currentProfile) >= limite) {
+    showQuotaExhausted('Quota épuisé pour ce mois-ci.');
     return;
   }
 
@@ -183,7 +192,7 @@ async function handleGenerateSequence() {
 
     const response = await fetch('/api/sequence', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: await authHeaders(),
       body: JSON.stringify({
         secteur: LABELS_SECTEUR[currentProfile.secteur] || currentProfile.secteur,
         offre: currentProfile.offre,
@@ -203,9 +212,12 @@ async function handleGenerateSequence() {
     const data = await response.json();
 
     if (!response.ok) {
-      showToast('Erreur : ' + (data.error || 'impossible de générer la séquence'), 'failed');
+      if (data.upgrade) showQuotaExhausted(data.error);
+      else showToast('Erreur : ' + (data.error || 'impossible de générer la séquence'), 'failed');
       return;
     }
+
+    currentProfile = applyQuotaFromServer(currentProfile, data.quota);
 
     lastGeneratedSequence = { canal, objectif, prospectId: prospectId || null, etapes: data.etapes };
 
@@ -223,8 +235,6 @@ async function handleGenerateSequence() {
     outputCard.classList.add('visible');
     outputCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     document.getElementById('saveBtn').classList.remove('active');
-
-    currentProfile = await incrementQuotaUsed(currentProfile);
 
   } catch (err) {
     showToast('Erreur réseau, réessaie dans un instant.', 'failed');

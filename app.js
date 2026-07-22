@@ -99,13 +99,20 @@ async function buildProspectContext(prospectId) {
 }
 
 function updateQuotaDisplay() {
-  const restant = Math.max(0, QUOTA_GRATUIT - getQuotaUsed(currentProfile));
-  document.getElementById('quotaDisplay').textContent =
-    `${restant} génération${restant > 1 ? 's' : ''} restante${restant > 1 ? 's' : ''}`;
+  const limite = limiteGenerations(currentProfile);
+  const el = document.getElementById('quotaDisplay');
+  const btn = document.getElementById('generateBtn');
+
+  if (limite === null) {
+    el.textContent = 'générations illimitées';
+    return;
+  }
+
+  const restant = Math.max(0, limite - getQuotaUsed(currentProfile));
+  el.textContent = `${restant} génération${restant > 1 ? 's' : ''} restante${restant > 1 ? 's' : ''}`;
 
   // Quota épuisé : le bouton le dit clairement au lieu de laisser cliquer
   // dans le vide (l'état est levé au changement de mois, côté getQuotaUsed).
-  const btn = document.getElementById('generateBtn');
   if (restant === 0) {
     btn.disabled = true;
     btn.textContent = 'quota mensuel épuisé';
@@ -128,8 +135,11 @@ async function getWorkedScriptExamples(canal) {
 }
 
 async function handleGenerate() {
-  if (getQuotaUsed(currentProfile) >= QUOTA_GRATUIT) {
-    showToast('Quota gratuit épuisé pour ce mois-ci — il se réinitialise le 1er du mois.', 'failed');
+  // Pré-contrôle de confort seulement : le vrai refus vient du serveur
+  // (HTTP 402), le seul que la console du navigateur ne peut pas sauter.
+  const limite = limiteGenerations(currentProfile);
+  if (limite !== null && getQuotaUsed(currentProfile) >= limite) {
+    showQuotaExhausted('Quota épuisé pour ce mois-ci.');
     return;
   }
 
@@ -151,7 +161,7 @@ async function handleGenerate() {
 
     const response = await fetch('/api/generate', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: await authHeaders(),
       body: JSON.stringify({
         secteur: LABELS_SECTEUR[currentProfile.secteur] || currentProfile.secteur,
         offre: currentProfile.offre,
@@ -170,9 +180,12 @@ async function handleGenerate() {
     const data = await response.json();
 
     if (!response.ok) {
-      showToast('Erreur : ' + (data.error || 'impossible de générer le script'), 'failed');
+      if (data.upgrade) showQuotaExhausted(data.error);
+      else showToast('Erreur : ' + (data.error || 'impossible de générer le script'), 'failed');
       return;
     }
+
+    currentProfile = applyQuotaFromServer(currentProfile, data.quota);
 
     // Affichage du résultat
     document.getElementById('outputText').textContent = data.texte;
@@ -188,8 +201,6 @@ async function handleGenerate() {
     // amène le résultat dans le viewport (sur mobile il naît sous le fold)
     outputCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     document.getElementById('saveBtn').classList.remove('active'); // reset l'état favori
-
-    currentProfile = await incrementQuotaUsed(currentProfile);
 
   } catch (err) {
     showToast('Erreur réseau, réessaie dans un instant.', 'failed');

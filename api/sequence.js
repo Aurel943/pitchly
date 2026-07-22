@@ -15,7 +15,13 @@
 
    La clé API vient de process.env.ANTHROPIC_API_KEY (même variable
    que /api/generate, /api/objections, /api/refresh-style).
+
+   Route authentifiée et décomptée sur le quota du plan : c'est la
+   génération la plus chère du produit (jusqu'à 5 messages d'un coup),
+   donc celle qu'il serait le plus coûteux de laisser ouverte.
    ================================================================ */
+
+import { exigerGeneration } from './_lib.js';
 
 // Chaque canal a sa longueur et sa structure naturelles ; on borne
 // max_tokens en fonction du canal ET du nombre d'étapes pour ne pas
@@ -79,6 +85,9 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Méthode non autorisée' });
   }
+
+  const acces = await exigerGeneration(req, res);
+  if (!acces) return; // exigerGeneration a déjà répondu (401 ou 402)
 
   const { secteur, offre, panier, canal, objectif, etapes, ton, adresse, contexte, exemples, styleProfile, prospect } = req.body;
 
@@ -171,7 +180,7 @@ Le champ "objet" est une chaîne vide pour LinkedIn. Le champ "message" ne conti
       return res.status(502).json({ error: "La séquence générée n'a pas pu être lue. Réessaie dans un instant." });
     }
 
-    return res.status(200).json({ etapes: etapesParsees });
+    return res.status(200).json({ etapes: etapesParsees, quota: acces.quota });
 
   } catch (err) {
     return res.status(500).json({ error: 'Erreur serveur : ' + err.message });
