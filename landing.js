@@ -13,14 +13,14 @@
 const AUTH_MODAL_TEXT = {
   login: {
     title: 'content de te revoir',
-    desc: 'connecte-toi pour retrouver ton espace.',
+    desc: 'connecte-toi pour retrouver tes campagnes.',
     switchQuestion: 'toujours pas inscrit ?',
     switchAction: 'crée ton compte',
     switchMode: 'signup',
   },
   signup: {
     title: 'crée ton compte',
-    desc: 'inscris-toi pour générer tes premiers scripts.',
+    desc: 'deux minutes, et ta première séquence peut partir.',
     switchQuestion: 'déjà inscrit ?',
     switchAction: 'connecte-toi',
     switchMode: 'login',
