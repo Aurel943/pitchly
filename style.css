@@ -356,6 +356,31 @@ textarea{resize:vertical;min-height:64px;}
    ============================================ */
 .dashboard-section{margin-bottom:32px;}
 .dashboard-section:last-child{margin-bottom:0;}
+
+/* ============================================
+   MISE EN PAGE DASHBOARD — deux colonnes
+
+   Sans grille, les six blocs s'empilaient en une seule colonne de
+   860px : un long ruban avec un grand vide à droite sur desktop, et
+   six labels mono qui se suivaient sans hiérarchie. Ici le flux
+   d'action et de résultats (réponses à traiter, prochaine étape,
+   chiffres, progression) tient dans la colonne principale ; la
+   mémoire de style et l'activité récente, secondaires, passent en
+   colonne latérale. Les blocs masqués (.hidden = display:none) sortent
+   de la grille, donc un nouvel inscrit voit deux colonnes équilibrées
+   plutôt qu'une case vide. Sous 900px, tout retombe en une colonne,
+   dans l'ordre du flux principal puis du secondaire.
+   ============================================ */
+#mainDashboard .wrap{max-width:1100px;}
+.dash-body{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);gap:26px;align-items:start;}
+.dash-main,.dash-aside{min-width:0;display:flex;flex-direction:column;gap:26px;}
+.dash-main .dashboard-section,.dash-aside .dashboard-section{margin-bottom:0;}
+/* Colonne principale plus étroite qu'une pleine largeur : les tuiles
+   se rangent en 2×2 au lieu de déborder en 3+1. */
+.dash-main .metrics{grid-template-columns:repeat(2,1fr);}
+@media(max-width:900px){
+  .dash-body{grid-template-columns:1fr;gap:22px;}
+}
 .section-label{
   display:inline-flex;align-items:center;gap:10px;
   font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:500;

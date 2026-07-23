@@ -55,6 +55,12 @@
       <p class="dashboard-stats" id="dashboardStats"></p>
     </header>
 
+    <!-- Deux colonnes sur desktop (voir .dash-body dans style.css) :
+         .dash-main porte le flux d'action et de résultats, .dash-aside
+         la mémoire de style et l'activité récente. -->
+    <div class="dash-body">
+    <div class="dash-main">
+
     <!-- ============ RÉPONSES À TRAITER ============
          En tête de page parce que c'est la seule chose de ce dashboard
          qui appelle une action le jour même : un prospect qui a répondu
@@ -97,6 +103,9 @@
       </div>
     </div>
 
+    </div><!-- /.dash-main -->
+    <div class="dash-aside">
+
     <!-- ============ MÉMOIRE DE STYLE ============
          Affichée ici, et plus seulement au fond de la page compte : le
          profil de style est la seule chose du produit qui s'accumule
@@ -119,6 +128,9 @@
       <span class="section-label">activité récente</span>
       <div id="recentActivityList"></div>
     </div>
+
+    </div><!-- /.dash-aside -->
+    </div><!-- /.dash-body -->
 
   </div>
 </main>
