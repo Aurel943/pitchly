@@ -117,6 +117,7 @@ async function renderDashboard(profile) {
   ]);
 
   renderHeadline(etat);
+  renderParcours(etat);
   renderInbox(etat);
   renderNextStep(etat);
   renderMetrics(etat);
@@ -224,27 +225,21 @@ async function getEtatProspection() {
 
 // Le titre dit la situation plutôt que de poser une question creuse
 // ("Qu'est-ce qu'on vend aujourd'hui ?" n'informait de rien).
+// Les compteurs (prospects, envois…) ne sont plus répétés ici : la carte
+// de parcours juste en dessous les porte. Le titre ne garde que la
+// situation du jour.
 function renderHeadline(etat) {
   const h1 = document.getElementById('dashboardHeadline');
-  const sous = document.getElementById('dashboardStats');
 
   if (etat.campagnes.length === 0) {
     h1.innerHTML = 'Ta prospection <em>commence ici.</em>';
-    sous.textContent = etat.prospects > 0
-      ? `${etat.prospects} prospect${etat.prospects > 1 ? 's' : ''} en fiche · aucune séquence lancée`
-      : 'aucun prospect enregistré pour l\'instant';
-    return;
-  }
-
-  if (etat.repondues.length > 0) {
+  } else if (etat.repondues.length > 0) {
     h1.innerHTML = `${etat.repondues.length} prospect${etat.repondues.length > 1 ? 's t\'ont' : ' t\'a'} <em>répondu.</em>`;
   } else if (etat.actives.length > 0) {
     h1.innerHTML = `${etat.actives.length} séquence${etat.actives.length > 1 ? 's tournent' : ' tourne'} <em>en ce moment.</em>`;
   } else {
     h1.innerHTML = 'Où en est <em>ta prospection ?</em>';
   }
-
-  sous.textContent = `${etat.envoyes} email${etat.envoyes > 1 ? 's' : ''} envoyé${etat.envoyes > 1 ? 's' : ''} · ${etat.aVenir} programmé${etat.aVenir > 1 ? 's' : ''} · ${etat.prospects} prospect${etat.prospects > 1 ? 's' : ''}`;
 }
 
 /* ================================================================
@@ -284,12 +279,49 @@ function renderInbox(etat) {
    c'est exactement ce que les quatre raccourcis d'avant encourageaient.
    ================================================================ */
 
-const ETAPES_ACTIVATION = [
-  { cle: 'prospect', label: 'un prospect' },
-  { cle: 'sequence', label: 'une séquence' },
-  { cle: 'campagne', label: 'un envoi lancé' },
-  { cle: 'reponse', label: 'une réponse' },
-];
+/* ================================================================
+   PARCOURS — la carte du funnel, en tête de dashboard
+
+   Le reproche fait à un outil multi-fonctions, c'est de s'y perdre.
+   Cette carte montre le flux entier — prospects → séquences → envois →
+   réponses — avec les vrais compteurs ; chaque étape mène à sa page, et
+   celle où agir maintenant est mise en avant. On voit d'un coup ce que
+   fait l'app et où on en est, à chaque passage sur l'accueil.
+   ================================================================ */
+
+// L'étape mise en avant, alignée sur la prochaine étape recommandée :
+// la première non franchie, ou "réponses" dès qu'il y en a à traiter.
+function etapeFocus(etat) {
+  if (etat.prospects === 0) return 'prospect';
+  if (etat.sequences === 0) return 'sequence';
+  if (etat.campagnes.length === 0) return 'envoi';
+  if (etat.repondues.length > 0) return 'reponse';
+  return 'prospect';
+}
+
+function renderParcours(etat) {
+  const focus = etapeFocus(etat);
+  const n = etat.repondues.length;
+
+  const etapes = [
+    { cle: 'prospect', href: 'prospects.html', count: etat.prospects,
+      label: etat.prospects === 1 ? 'prospect' : 'prospects', go: 'en ajouter →' },
+    { cle: 'sequence', href: 'sequences.html', count: etat.sequences,
+      label: etat.sequences === 1 ? 'séquence écrite' : 'séquences écrites', go: 'en écrire →' },
+    { cle: 'envoi', href: 'campagnes.html', count: etat.envoyes,
+      label: etat.envoyes === 1 ? 'email envoyé' : 'emails envoyés',
+      go: (focus === 'envoi' && etat.envoyes === 0) ? 'lancer un envoi →' : "suivre l'envoi →" },
+    { cle: 'reponse', href: 'campagnes.html', count: n,
+      label: n === 1 ? 'réponse' : 'réponses', go: 'y répondre →' },
+  ];
+
+  document.getElementById('parcoursGrid').innerHTML = etapes.map(e => `
+    <a class="parcours-step ${e.cle === focus ? 'focus' : ''}" href="${e.href}">
+      <span class="ps-count">${e.count}</span>
+      <span class="ps-label">${e.label}</span>
+      <span class="ps-go">${e.go}</span>
+    </a>`).join('');
+}
 
 function renderNextStep(etat) {
   const faits = {
@@ -338,18 +370,6 @@ function renderNextStep(etat) {
   document.getElementById('nextStepTitle').textContent = etape.titre;
   document.getElementById('nextStepText').textContent = etape.texte;
   carte.querySelector('.next-step-go').textContent = etape.bouton;
-
-  // Les jalons ne s'affichent que pendant le parcours : une fois les
-  // quatre franchis, ils n'apprennent plus rien et encombrent la page.
-  const jalons = document.getElementById('onboardingSteps');
-  if (ETAPES_ACTIVATION.every(e => faits[e.cle])) {
-    jalons.innerHTML = '';
-    return;
-  }
-  jalons.innerHTML = ETAPES_ACTIVATION.map(e => `
-    <span class="ob-step ${faits[e.cle] ? 'done' : ''}">
-      <i>${faits[e.cle] ? '✓' : ''}</i>${e.label}
-    </span>`).join('');
 }
 
 /* ================================================================

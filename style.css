@@ -381,6 +381,32 @@ textarea{resize:vertical;min-height:64px;}
 @media(max-width:900px){
   .dash-body{grid-template-columns:1fr;gap:22px;}
 }
+
+/* ============================================
+   CARTE DE PARCOURS (funnel)
+   Le flux entier en tête d'accueil : prospects → séquences → envois →
+   réponses, compteurs réels, chaque cellule mène à sa page, celle où
+   agir est en or. C'est la carte qui empêche de se perdre entre les
+   fonctions. Sur mobile, les quatre cellules passent en 2×2.
+   ============================================ */
+.parcours-wrap{margin-bottom:26px;}
+.parcours{display:grid;grid-template-columns:repeat(4,1fr);background:var(--paper);border-radius:18px;overflow:hidden;box-shadow:0 22px 50px -32px rgba(0,0,0,.5);}
+.parcours-step{display:flex;flex-direction:column;gap:5px;padding:18px 22px;color:var(--ink);transition:background .2s var(--ease);}
+.parcours-step+.parcours-step{border-left:1px solid rgba(22,41,44,.09);}
+.parcours-step:hover{background:var(--paper-dim);}
+.parcours-step .ps-count{font-family:'Fraunces',serif;font-size:30px;font-weight:600;line-height:1;color:var(--ink);}
+.parcours-step .ps-label{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--text-muted);}
+.parcours-step .ps-go{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--gold-dim);margin-top:2px;opacity:0;transition:opacity .2s;}
+.parcours-step:hover .ps-go{opacity:1;}
+.parcours-step.focus{background:var(--gold);}
+.parcours-step.focus .ps-count{color:var(--ink);}
+.parcours-step.focus .ps-label{color:rgba(22,41,44,.65);}
+.parcours-step.focus .ps-go{color:var(--ink);opacity:1;}
+@media(max-width:640px){
+  .parcours{grid-template-columns:repeat(2,1fr);}
+  .parcours-step:nth-child(3),.parcours-step:nth-child(4){border-top:1px solid rgba(22,41,44,.09);}
+  .parcours-step:nth-child(3){border-left:none;}
+}
 .section-label{
   display:inline-flex;align-items:center;gap:10px;
   font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:500;

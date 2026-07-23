@@ -19,9 +19,9 @@
   <div class="wrap">
     <a class="logo" href="dashboard.html"><span class="dot"></span>pitchly</a>
     <div class="nav-tabs">
+      <a href="dashboard.html" class="active">accueil</a>
       <a href="prospects.html">prospects</a>
       <a href="app.html">rédiger</a>
-      <a href="dashboard.html" class="active">accueil</a>
     </div>
     <div class="nav-right">
       <a class="nav-avatar" href="compte.html" title="mon compte">
@@ -52,8 +52,17 @@
         <a class="plan-badge" id="planBadge" href="index.html#tarifs">—</a>
       </div>
       <h1 id="dashboardHeadline">Où en est <em>ta prospection&nbsp;?</em></h1>
-      <p class="dashboard-stats" id="dashboardStats"></p>
     </header>
+
+    <!-- CARTE DE PARCOURS — le funnel complet en tête d'accueil : les
+         quatre étapes du flux (prospects → séquences → envois → réponses)
+         avec les vrais compteurs, chacune cliquable vers sa page, celle où
+         agir mise en avant. Peuplée par renderParcours(). C'est la carte
+         qui évite de se perdre dans les fonctions de l'app. -->
+    <div class="parcours-wrap">
+      <span class="section-label">ton parcours</span>
+      <div class="parcours" id="parcoursGrid"></div>
+    </div>
 
     <!-- Deux colonnes sur desktop (voir .dash-body dans style.css) :
          .dash-main porte le flux d'action et de résultats, .dash-aside
@@ -85,7 +94,6 @@
         </div>
         <span class="next-step-go">commencer →</span>
       </a>
-      <div class="onboarding-steps" id="onboardingSteps"></div>
     </div>
 
     <!-- ============ CHIFFRES ============ -->
