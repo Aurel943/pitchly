@@ -340,6 +340,21 @@ alter table public.prospects add column if not exists opted_out_at timestamptz;
 alter table public.profiles add column if not exists plan text not null default 'free';
 
 -- ================================================================
+-- PAUSE DE COMPTE
+--
+-- Un indépendant ne prospecte pas de façon continue : il a un trou de
+-- charge, il prospecte trois semaines, il signe, il arrête six mois.
+-- Sans mode pause, la seule action disponible pendant le creux est la
+-- résiliation — et on ne revient pas d'une résiliation.
+--
+-- paused_at porte à la fois l'état (non nul = en pause) et la date, qui
+-- sert au retour : les étapes encore programmées sont décalées de la
+-- durée exacte de la pause, pour que l'espacement J+3 / J+7 validé au
+-- lancement soit celui que le prospect vit réellement.
+-- ================================================================
+alter table public.profiles add column if not exists paused_at timestamptz;
+
+-- ================================================================
 -- ACCROCHE — la raison d'écrire à ce prospect aujourd'hui.
 --
 -- Distincte de "notes" volontairement : les notes sont ce que le

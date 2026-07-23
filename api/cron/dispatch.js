@@ -35,7 +35,14 @@
      curl -H "Authorization: Bearer <CRON_SECRET>" https://<site>/api/cron/dispatch
    ================================================================ */
 
-import { sbFetch, sendEmail, fromAddress, replyAddress, destinataireInterditEnTest } from '../_lib.js';
+import {
+  sbFetch,
+  sendEmail,
+  fromAddress,
+  replyAddress,
+  destinataireInterditEnTest,
+  mentionLegale,
+} from '../_lib.js';
 
 // Nombre d'étapes traitées par exécution — borne le temps d'exécution
 // de la fonction serverless. Le cron repasse à l'heure suivante pour
@@ -47,12 +54,11 @@ const MAX_PAR_RUN = 50;
 // grillé) autant qu'un garde-fou contre l'usage en spam de masse.
 const MAX_PAR_JOUR_PAR_USER = 40;
 
-// Mention de retrait ajoutée à chaque message. Répondre STOP suffit :
-// la réponse arrive sur l'adresse aliasée, et /api/inbound la traite
-// comme une désinscription. Pas de lien à cliquer, pas de page à
-// héberger, et ça reste conforme à l'obligation d'opposition simple.
-const MENTION_RETRAIT =
-  "\n\n---\nPour ne plus recevoir de messages de ma part, répondez simplement STOP à cet email.";
+// La mention légale ajoutée en bas de chaque message est construite par
+// mentionLegale() dans _lib.js : elle dépend du vendeur (responsable de
+// traitement) et du prospect (source de ses coordonnées), elle ne peut
+// donc pas être une constante. Répondre STOP suffit à se désinscrire :
+// la réponse arrive sur l'adresse aliasée et /api/inbound la traite.
 
 export default async function handler(req, res) {
   const attendu = process.env.CRON_SECRET;
@@ -78,13 +84,32 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: true, ...resultats });
     }
 
-    // Identités d'envoi et compteurs du jour, récupérés une fois par
-    // utilisateur concerné plutôt qu'une fois par étape.
+    // Identités d'envoi, profils et compteurs du jour, récupérés une
+    // fois par utilisateur concerné plutôt qu'une fois par étape.
     const userIds = [...new Set(etapes.map(e => e.user_id))];
     const identites = await sbFetch(
       `sending_identities?user_id=in.(${userIds.join(',')})&select=*`
     );
     const identiteParUser = Object.fromEntries((identites || []).map(i => [i.user_id, i]));
+
+    // Le profil sert à deux choses ici : le nom de repli du responsable
+    // de traitement dans la mention légale, et l'état de pause du compte.
+    const profils = await sbFetch(
+      `profiles?id=in.(${userIds.join(',')})&select=id,nom,paused_at`
+    );
+    const profilParUser = Object.fromEntries((profils || []).map(p => [p.id, p]));
+
+    // Les fiches prospects, pour citer la source des coordonnées dans la
+    // mention légale. Une campagne peut ne pas être rattachée à un
+    // prospect (adresse saisie au lancement) : la mention retombe alors
+    // sur une formulation générale.
+    const prospectIds = [...new Set(
+      etapes.map(e => e.campaign?.prospect_id).filter(Boolean)
+    )];
+    const prospects = prospectIds.length
+      ? await sbFetch(`prospects?id=in.(${prospectIds.join(',')})&select=id,site_url`)
+      : [];
+    const prospectParId = Object.fromEntries((prospects || []).map(p => [p.id, p]));
 
     const debutJour = new Date();
     debutJour.setUTCHours(0, 0, 0, 0);
@@ -99,6 +124,16 @@ export default async function handler(req, res) {
 
     for (const etape of etapes) {
       const campagne = etape.campaign;
+      const profil = profilParUser[etape.user_id];
+
+      // Compte en pause : on ne touche à rien. Les étapes restent
+      // 'pending' et seront décalées de la durée de la pause au retour
+      // (voir /api/account/pause), pour que l'espacement J+3 / J+7 de la
+      // séquence reste celui que l'utilisateur a validé au lancement.
+      if (profil?.paused_at) {
+        resultats.ignores++;
+        continue;
+      }
 
       if ((compteurs[etape.user_id] || 0) >= MAX_PAR_JOUR_PAR_USER) {
         // On ne touche pas à l'étape : elle reste 'pending' et repartira
@@ -148,7 +183,11 @@ export default async function handler(req, res) {
           to: campagne.destinataire,
           replyTo,
           subject: etape.objet || etape.titre || 'Bonjour',
-          text: etape.message + MENTION_RETRAIT,
+          text: etape.message + mentionLegale({
+            identite,
+            profil,
+            prospect: prospectParId[campagne.prospect_id],
+          }),
           headers: {
             // Permet aux messageries d'afficher un bouton de
             // désinscription natif : bon pour la conformité, et

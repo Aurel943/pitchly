@@ -22,6 +22,7 @@ import {
   prochainCreneauOuvre,
   destinataireInterditEnTest,
   verifierQuotaCampagnes,
+  pauseDuCompte,
 } from '../_lib.js';
 
 // Garde-fou simple : on ne cherche pas à valider parfaitement une
@@ -111,6 +112,15 @@ export default async function handler(req, res) {
           error: 'Une séquence est déjà en cours sur ce prospect. Arrête-la avant d\'en lancer une autre.',
         });
       }
+    }
+
+    // --- Compte en pause : lancer une séquence qui ne partirait pas est
+    // le pire des deux mondes. On refuse en expliquant, plutôt que de
+    // réactiver le compte dans le dos de l'utilisateur.
+    if (await pauseDuCompte(user.id)) {
+      return res.status(409).json({
+        error: 'Ton compte est en pause : aucun message ne part. Réactive-le depuis ton compte pour lancer cette séquence.',
+      });
     }
 
     // --- Quota de campagnes du plan. Contrôlé ici, après les validations

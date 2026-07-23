@@ -161,13 +161,33 @@
       </div>
     </div>
 
-    <!-- ============ PROFIL DE STYLE APPRIS ============ -->
-    <div class="card">
+    <!-- ============ PROFIL DE STYLE APPRIS ============
+         Carte mise en avant (classe .card-highlight) : c'est la seule
+         chose du produit qui s'accumule et qui se perd en partant. Elle
+         était présentée comme un réglage parmi d'autres, alors que c'est
+         ce qui distingue Pitchly d'un chatbot au bout de trois mois. -->
+    <div class="card card-highlight">
       <div class="card-label">
         <span>ce que pitchly a appris de ton style</span>
+        <span class="style-count" id="styleProfileCount"></span>
       </div>
       <p class="empty-state" id="styleProfileEmpty">pas encore assez de retours notés (👍/👎 sur tes scripts et réponses aux objections) pour en dégager des patterns — note au moins 3 éléments pour que ça démarre.</p>
       <p class="style-profile-text hidden" id="styleProfileText"></p>
+      <p class="style-note" id="styleProfileNote"></p>
+    </div>
+
+    <!-- ============ RYTHME DE PROSPECTION (PAUSE) ============
+         La prospection d'un indépendant va par à-coups. Sans cette
+         carte, la seule façon d'arrêter pendant un creux est de
+         supprimer ses campagnes ou de résilier. -->
+    <div class="card">
+      <div class="card-label">
+        <span>rythme de prospection</span>
+      </div>
+      <p class="pause-state" id="pauseState">—</p>
+      <div class="edit-actions">
+        <button class="btn-text" id="pauseBtn" onclick="handleTogglePause(event)">chargement…</button>
+      </div>
     </div>
   </div>
 </main>

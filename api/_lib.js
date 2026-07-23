@@ -136,8 +136,20 @@ export async function sbFetch(path, { method = 'GET', body, prefer } = {}) {
 // campagnes   : campagnes lancées par mois — l'axe qui porte le prix,
 //               parce que c'est lui qui porte à la fois notre coût
 //               d'envoi et la valeur perçue par le vendeur.
+//
+// POURQUOI LE PLAN GRATUIT EST DIMENSIONNÉ COMME ÇA (révisé le 23/07/2026)
+// Il était à 1 campagne, ce qui garantissait l'échec : à un taux de
+// réponse réaliste de 10 %, un essai sur un seul prospect a 10 % de
+// chances de produire une réponse. L'utilisateur repartait donc neuf
+// fois sur dix sans avoir vu la seule chose que le produit promet.
+// À 5 campagnes, la probabilité de voir au moins une réponse passe à
+// 1 − 0,9^5 ≈ 41 % — le gratuit cesse d'être une démonstration pour
+// devenir un vrai test. Ce que ça nous coûte : ~20 emails (le palier
+// gratuit de Resend en autorise 3 000/mois) et 20 appels Claude.
+// Monter à 7 campagnes ferait passer la barre des 50 % si l'activation
+// reste trop basse — c'est le prochain cran à essayer, pas un autre axe.
 export const PLANS = {
-  free: { label: 'Découverte', generations: 5, campagnes: 1 },
+  free: { label: 'Découverte', generations: 20, campagnes: 5 },
   solo: { label: 'Solo', generations: 100, campagnes: 50 },
   pro: { label: 'Pro', generations: null, campagnes: 300 },
 };
@@ -212,11 +224,29 @@ export async function verifierQuotaCampagnes(user) {
     return {
       ok: false,
       error: plan === 'free'
-        ? "Le plan Découverte permet une campagne d'essai. Passe au plan Solo pour lancer tes vraies séquences."
+        ? `Tu as utilisé tes ${limite} campagnes du plan Découverte. Passe au plan Solo pour continuer.`
         : `Tu as lancé tes ${limite} campagnes du mois sur le plan ${PLANS[plan].label}.`,
     };
   }
   return { ok: true };
+}
+
+/* ---------------------------------------------------------------
+   Pause de compte
+   --------------------------------------------------------------- */
+
+// Au-delà de ce délai, on ne décale plus les étapes en attente au
+// retour de pause : on arrête les campagnes. Reprendre une séquence
+// après deux mois de silence, c'est envoyer « je reviens vers vous »
+// à quelqu'un qui a oublié jusqu'à l'existence du premier message.
+export const PAUSE_LONGUE_JOURS = 30;
+
+// Renvoie la date de mise en pause, ou null si le compte est actif.
+// Lue depuis la base à chaque fois : un compte peut être mis en pause
+// entre la programmation d'une séquence et son envoi.
+export async function pauseDuCompte(userId) {
+  const rows = await sbFetch(`profiles?id=eq.${userId}&select=paused_at`);
+  return rows?.[0]?.paused_at || null;
 }
 
 // Portier commun aux trois routes de génération : identité, puis quota.
@@ -309,6 +339,55 @@ export function destinataireInterditEnTest(destinataire, identity) {
   if (autorisee && destinataire.trim().toLowerCase() === autorisee) return null;
 
   return `Mode test : tant qu'aucun domaine d'envoi n'est configuré, Pitchly ne peut écrire qu'à ta propre adresse${autorisee ? ` (${autorisee})` : ''}. Configure un domaine d'expédition pour contacter de vrais prospects.`;
+}
+
+/* ---------------------------------------------------------------
+   Mention légale des messages de prospection (RGPD art. 13-14)
+   --------------------------------------------------------------- */
+
+// D'où viennent les coordonnées du prospect, formulé pour être lu par
+// lui. On préfère nommer son site quand le vendeur l'a renseigné :
+// « vu sur votre site » est vérifiable par le destinataire, là où une
+// formule générique ressemble à une clause de style.
+function sourceDonnees(prospect) {
+  const url = (prospect?.site_url || '').trim();
+  if (url) {
+    try {
+      const hote = new URL(url.startsWith('http') ? url : `https://${url}`)
+        .hostname.replace(/^www\./, '');
+      return `votre site ${hote}`;
+    } catch {
+      // URL illisible : on retombe sur la formulation générale plutôt
+      // que d'afficher une chaîne cassée dans un message légal.
+    }
+  }
+  return 'vos coordonnées professionnelles publiées en ligne';
+}
+
+// Bloc ajouté au bas de CHAQUE message envoyé à un prospect.
+//
+// Ce n'est pas un pied de page décoratif. Dans une prospection à
+// froid, les coordonnées du destinataire ont été collectées
+// indirectement — sur son site, dans un annuaire — ce qui déclenche
+// l'article 14 du RGPD : la personne doit être informée dans le mois,
+// et ce premier message EST cette information. Un simple « répondez
+// STOP » ne couvre que le droit d'opposition ; il manque l'identité du
+// responsable, la finalité, la source des données, la durée de
+// conservation et la voie de réclamation.
+//
+// Le responsable de traitement est le VENDEUR, jamais Pitchly : c'est
+// lui qui décide qui contacter et pourquoi, nous ne sommes que
+// l'outil qui exécute. D'où un texte construit à partir de son
+// identité d'envoi, et pas une constante partagée.
+export function mentionLegale({ identite, profil, prospect } = {}) {
+  const responsable = (identite?.from_name || profil?.nom || '').trim();
+  const qui = responsable || "l'expéditeur de ce message";
+
+  return '\n\n—\n' + [
+    `Ce message est une prise de contact professionnelle. Responsable du traitement : ${qui}, joignable en réponse à cet email. Finalité : vous proposer une offre professionnelle, sans autre usage ni transmission à des tiers. Source de vos coordonnées : ${sourceDonnees(prospect)}. Conservation : jusqu'à votre opposition, et au plus trois ans sans réponse de votre part.`,
+    "Vous pouvez demander l'accès, la rectification, l'effacement ou la portabilité de vos données, ou vous opposer à leur traitement, en répondant à cet email. Vous pouvez également introduire une réclamation auprès de la CNIL (cnil.fr).",
+    'Pour ne plus recevoir aucun message de ma part : répondez STOP.',
+  ].join('\n');
 }
 
 // Envoi via l'API REST de Resend (pas de SDK : le projet n'a aucune

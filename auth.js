@@ -17,9 +17,9 @@ let currentUser = null;
 // Toute divergence entre les deux se voit comme un compteur qui ment,
 // jamais comme un quota contourné.
 const PLANS_AFFICHAGE = {
-  free: { label: 'Découverte', prix: '0 €', generations: 5, campagnes: 1 },
-  solo: { label: 'Solo', prix: '29 €', generations: 100, campagnes: 50 },
-  pro: { label: 'Pro', prix: '59 €', generations: null, campagnes: 300 },
+  free: { label: 'Découverte', prix: '0 €', prixAnnuel: null, generations: 20, campagnes: 5 },
+  solo: { label: 'Solo', prix: '29 €', prixAnnuel: '290 €', generations: 100, campagnes: 50 },
+  pro: { label: 'Pro', prix: '59 €', prixAnnuel: '590 €', generations: null, campagnes: 300 },
 };
 
 function planDe(profile) {

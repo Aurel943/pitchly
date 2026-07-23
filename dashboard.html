@@ -97,6 +97,24 @@
       </div>
     </div>
 
+    <!-- ============ MÉMOIRE DE STYLE ============
+         Affichée ici, et plus seulement au fond de la page compte : le
+         profil de style est la seule chose du produit qui s'accumule
+         d'une campagne à l'autre, donc la seule qu'on perd en partant.
+         Invisible, elle ne retenait personne. -->
+    <div class="dashboard-section" id="styleSection">
+      <span class="section-label">ce que pitchly a appris de toi</span>
+      <div class="card card-highlight">
+        <div class="style-memory-head">
+          <p class="style-memory-state" id="styleMemoryState">—</p>
+          <span class="style-count" id="styleMemoryCount"></span>
+        </div>
+        <div class="style-memory-bar hidden" id="styleMemoryBar"><span id="styleMemoryFill"></span></div>
+        <p class="style-profile-text hidden" id="styleMemoryText"></p>
+        <p class="style-note" id="styleMemoryNote"></p>
+      </div>
+    </div>
+
     <div class="dashboard-section hidden" id="recentActivitySection">
       <span class="section-label">activité récente</span>
       <div id="recentActivityList"></div>

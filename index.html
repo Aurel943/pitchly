@@ -238,6 +238,12 @@
   .price-card .amount{font-family:'Fraunces',serif;font-size:46px;font-weight:600;line-height:1;}
   .price-card.plain .amount{color:var(--paper);}
   .price-card .amount span{font-family:'Inter',sans-serif;font-size:14px;font-weight:400;opacity:.6;}
+  /* L'annuel se lit sous le prix mensuel, sans bascule : un sélecteur
+     mensuel/annuel oblige à cliquer pour comparer, alors que l'intérêt
+     de l'annuel est justement d'être vu sans le chercher. */
+  .price-card .price-annual{font-family:'IBM Plex Mono',monospace;font-size:11.5px;letter-spacing:.02em;margin-top:10px;}
+  .price-card.plain .price-annual{color:var(--gold);}
+  .price-card.feature .price-annual{color:rgba(22,41,44,.65);}
   .price-card .for{font-size:13.5px;margin:14px 0 0;}
   .price-card.plain .for{color:var(--text-on-ink-dim);}
   .price-card.feature .for{color:rgba(22,41,44,.75);}
@@ -352,7 +358,7 @@
           <a class="btn-primary" href="inscription.html">Créer mon compte gratuit</a>
           <a href="#fonctionnement" class="btn-ghost">Voir comment ça marche <span>→</span></a>
         </div>
-        <p class="hero-note">sans carte bancaire · 5 générations et 1 campagne d'essai offertes</p>
+        <p class="hero-note">sans carte bancaire · 5 campagnes réelles et 20 générations offertes</p>
       </div>
 
       <!-- Une campagne réelle, telle qu'elle apparaît dans l'app. C'est
@@ -496,28 +502,28 @@
     <div class="wrap">
       <div class="reveal">
         <p class="kicker">ce que fait pitchly</p>
-        <h2 class="sec-title">Un commercial qui ne dort pas, <span class="it">et qui compte.</span></h2>
+        <h2 class="sec-title">Un commercial qui ne dort pas, <span class="it">et qui se souvient.</span></h2>
       </div>
       <div class="feat-rows">
         <div class="feat-row reveal" style="--i:0">
           <span class="idx">/01</span>
-          <h3>Il envoie pour de vrai</h3>
-          <p>Pas un texte à copier-coller : les emails partent depuis ton adresse, avec ton nom, et les réponses de tes prospects arrivent dans ta boîte habituelle. Tu peux brancher ton propre domaine pour la délivrabilité.</p>
+          <h3>Il apprend de toi, et il ne réapprend jamais</h3>
+          <p>Tu notes ce qui a marché et ce qui n'a pas marché. Pitchly en dégage tes patterns — longueur, ton, formulations, angles d'attaque — et les réutilise dans tout ce qu'il écrit ensuite. Au bout d'un mois il écrit comme toi ; au bout de six, mieux que toi le premier jour. C'est la seule chose ici qui ne se recommence pas ailleurs : un chatbot repart de zéro à chaque conversation.</p>
         </div>
         <div class="feat-row reveal" style="--i:1">
           <span class="idx">/02</span>
-          <h3>Il s'arrête au bon moment</h3>
-          <p>Dès qu'un prospect répond, les relances programmées sont annulées. Rien n'est plus embarrassant qu'une relance automatique envoyée à quelqu'un qui vient de dire oui.</p>
+          <h3>Il envoie pour de vrai</h3>
+          <p>Pas un texte à copier-coller : les emails partent depuis ton adresse, avec ton nom, et les réponses de tes prospects arrivent dans ta boîte habituelle. Tu peux brancher ton propre domaine pour la délivrabilité.</p>
         </div>
         <div class="feat-row reveal" style="--i:2">
           <span class="idx">/03</span>
-          <h3>Il te dit ce qui fait répondre</h3>
-          <p>Taux de réponse par campagne et par message, mesurés sur tes envois réels. Tu arrêtes de deviner quelle accroche fonctionne : tu le sais, chiffres à l'appui.</p>
+          <h3>Il s'arrête au bon moment</h3>
+          <p>Dès qu'un prospect répond, les relances programmées sont annulées. Rien n'est plus embarrassant qu'une relance automatique envoyée à quelqu'un qui vient de dire oui.</p>
         </div>
         <div class="feat-row reveal" style="--i:3">
           <span class="idx">/04</span>
-          <h3>Il apprend de toi</h3>
-          <p>Tu notes ce qui a marché et ce qui n'a pas marché. Pitchly en dégage tes patterns — longueur, ton, formulations — et les réutilise dans tout ce qu'il écrit ensuite. Au bout d'un mois, il écrit comme toi.</p>
+          <h3>Il te dit ce qui fait répondre</h3>
+          <p>Taux de réponse par campagne et par message, mesurés sur tes envois réels. Tu arrêtes de deviner quelle accroche fonctionne : tu le sais, chiffres à l'appui.</p>
         </div>
       </div>
     </div>
@@ -604,8 +610,8 @@
       </div>
       <div class="rules">
         <div class="rule reveal" style="--i:0">
-          <h3>Une désinscription qui fonctionne vraiment</h3>
-          <p>Chaque message porte une mention de retrait. Une réponse contenant « STOP » désinscrit le prospect définitivement — aucune campagne future ne pourra le recontacter.</p>
+          <h3>Chaque message porte son cadre légal</h3>
+          <p>Prospecter à froid, c'est utiliser des coordonnées collectées ailleurs — l'article 14 du RGPD impose alors d'informer la personne dès la prise de contact. Chaque email envoyé porte donc le responsable du traitement, la finalité, l'origine des coordonnées, la durée de conservation et les voies de recours. Et une réponse contenant « STOP » désinscrit définitivement : aucune campagne future ne pourra recontacter ce prospect.</p>
         </div>
         <div class="rule reveal" style="--i:1">
           <h3>Un prospect, une séquence</h3>
@@ -629,22 +635,24 @@
   <div class="wrap">
     <div class="reveal">
       <p class="kicker">tarifs</p>
-      <h2 class="sec-title">Un client signé rembourse <span class="it">l'année.</span></h2>
+      <h2 class="sec-title">Essaie sur 5 prospects. <span class="it">Décide après.</span></h2>
       <p class="sec-lead">
-        Le prix suit le nombre de prospects que tu contactes réellement, pas le nombre de mots
-        générés. Sans engagement, résiliable en un clic.
+        Le plan gratuit va jusqu'à la réponse d'un prospect, pas jusqu'à la démonstration : cinq
+        séquences complètes, envoyées et relancées pour de vrai. Tu sauras si ça marche pour toi
+        avant de sortir une carte.
       </p>
     </div>
     <div class="pricing-grid">
       <div class="price-card plain reveal" style="--i:0">
         <p class="plan">Découverte</p>
         <p class="amount">0 €</p>
-        <p class="for">Pour voir le mécanisme tourner de bout en bout.</p>
+        <p class="for">Assez pour obtenir une vraie réponse, pas juste pour voir l'outil tourner.</p>
         <ul>
-          <li>5 générations par mois</li>
-          <li>1 campagne d'essai</li>
+          <li>5 campagnes réelles, relances comprises</li>
+          <li>20 générations par mois</li>
+          <li>Détection des réponses et arrêt auto</li>
+          <li>Profil de style appris de tes retours</li>
           <li>Fiches prospects et historique</li>
-          <li>Réponses aux objections</li>
         </ul>
         <a class="btn-outline" href="inscription.html">Commencer gratuitement</a>
       </div>
@@ -653,13 +661,14 @@
         <span class="price-badge">le plus choisi</span>
         <p class="plan">Solo</p>
         <p class="amount">29 €<span>/mois</span></p>
+        <p class="price-annual">ou 290 € par an — deux mois offerts</p>
         <p class="for">Pour l'indépendant qui prospecte pour lui-même.</p>
         <ul>
           <li>50 campagnes par mois</li>
           <li>100 générations par mois</li>
           <li>Envoi réel et relances automatiques</li>
-          <li>Détection des réponses et arrêt auto</li>
           <li>Taux de réponse par campagne</li>
+          <li>Mise en pause du compte quand tu ne prospectes pas</li>
         </ul>
         <a class="btn-ink" href="inscription.html">Démarrer avec Solo</a>
       </div>
@@ -667,20 +676,22 @@
       <div class="price-card plain reveal" style="--i:2">
         <p class="plan">Pro</p>
         <p class="amount">59 €<span>/mois</span></p>
+        <p class="price-annual">ou 590 € par an — deux mois offerts</p>
         <p class="for">Pour qui prospecte tous les jours et tient à sa délivrabilité.</p>
         <ul>
           <li>300 campagnes par mois</li>
           <li>Générations illimitées</li>
           <li>Ton propre domaine d'envoi (SPF/DKIM)</li>
-          <li>Profil de style appris de tes retours</li>
           <li>Statistiques détaillées par message</li>
+          <li>Mise en pause du compte quand tu ne prospectes pas</li>
         </ul>
         <a class="btn-outline" href="inscription.html">Démarrer avec Pro</a>
       </div>
     </div>
     <p class="pricing-note reveal" style="--i:3">
-      Tu commences sur le plan Découverte : le changement de formule se fait depuis ton espace,
-      quand tu as vu l'outil tourner sur un vrai prospect.
+      Tu commences sur le plan Découverte, sans carte bancaire. Tu ne changes de formule que le
+      jour où tu as vu un prospect te répondre — et si tu arrêtes de prospecter un moment, tu mets
+      ton compte en pause au lieu de le résilier : tout repart où tu l'avais laissé.
     </p>
   </div>
 </section>

@@ -107,18 +107,60 @@ async function renderDashboard(profile) {
 
   renderPlanBadge(profile);
 
-  const [etat, recent, progress] = await Promise.all([
+  const [etat, recent, progress, notes] = await Promise.all([
     getEtatProspection(),
     getRecentActivity(),
     getProgressData(),
+    // Le vrai nombre de retours notés, pas celui figé dans le profil :
+    // c'est lui qui dit où en est l'apprentissage entre deux synthèses.
+    getCombinedSaved({ filterRatedOnly: true, includeSequences: true }),
   ]);
 
   renderHeadline(etat);
   renderInbox(etat);
   renderNextStep(etat);
   renderMetrics(etat);
+  renderStyleMemory(profile, notes.length);
   renderRecentActivity(recent);
   renderProgress(progress);
+}
+
+/* ================================================================
+   MÉMOIRE DE STYLE
+
+   Trois états, et le plus important est le premier : tant qu'il n'y a
+   pas assez de retours, on montre la barre de progression plutôt qu'un
+   bloc vide. Un compteur qui avance donne une raison de noter ses
+   messages ; « rien à afficher » n'en donne aucune.
+   ================================================================ */
+
+function renderStyleMemory(profile, retours) {
+  const etat = document.getElementById('styleMemoryState');
+  const count = document.getElementById('styleMemoryCount');
+  const barre = document.getElementById('styleMemoryBar');
+  const fill = document.getElementById('styleMemoryFill');
+  const texte = document.getElementById('styleMemoryText');
+  const note = document.getElementById('styleMemoryNote');
+
+  if (profile.style_profile) {
+    barre.classList.add('hidden');
+    texte.textContent = profile.style_profile;
+    texte.classList.remove('hidden');
+    etat.textContent = 'Pitchly écrit avec tes patterns.';
+    count.textContent = `construit sur ${retours} retours`;
+    note.textContent = "Réinjecté dans chaque message généré, et affiné à chaque 👍/👎. Cette mémoire vit sur ton compte : elle ne se reconstitue pas ailleurs.";
+    return;
+  }
+
+  const restants = Math.max(0, STYLE_PROFILE_MIN_RATED - retours);
+  barre.classList.remove('hidden');
+  fill.style.width = `${Math.min(100, (retours / STYLE_PROFILE_MIN_RATED) * 100)}%`;
+  texte.classList.add('hidden');
+  etat.textContent = restants === 0
+    ? 'Assez de retours — ton profil de style se construit.'
+    : `Encore ${restants} retours et Pitchly commence à écrire comme toi.`;
+  count.textContent = `${retours} / ${STYLE_PROFILE_MIN_RATED}`;
+  note.textContent = "Note 👍 ou 👎 les messages que tu génères. Pitchly en dégage ce qui te distingue — longueur, ton, formulations — et le réutilise dans tout ce qu'il écrit ensuite.";
 }
 
 /* ================================================================
