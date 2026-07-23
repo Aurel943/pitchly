@@ -17,17 +17,17 @@
 
 <nav>
   <div class="wrap">
-    <a class="logo" href="index.html"><span class="dot"></span>pitchly</a>
+    <a class="logo" href="dashboard.html"><span class="dot"></span>pitchly</a>
     <div class="nav-tabs">
       <a href="prospects.html">prospects</a>
       <a href="app.html">rédiger</a>
-      <a href="dashboard.html" class="active">résultats</a>
+      <a href="dashboard.html" class="active">accueil</a>
     </div>
     <div class="nav-right">
-      <div class="profile-pill" id="profilePill">
-        chargement du profil…
-      </div>
-      <a class="icon-btn" href="compte.html" title="mon compte">⚙</a>
+      <a class="nav-avatar" href="compte.html" title="mon compte">
+        <span class="nav-avatar-circle" id="navAvatarInitial">?</span>
+        <span class="nav-avatar-name" id="navAvatarName">chargement…</span>
+      </a>
       <button class="icon-btn hidden" id="logoutBtn" onclick="handleLogout()" title="déconnexion">⏻</button>
     </div>
   </div>

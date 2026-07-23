@@ -137,6 +137,23 @@ async function handleLogout(afterHref) {
   window.location.href = afterHref || 'index.html';
 }
 
+// Coin compte de la barre de nav, identique sur toutes les pages de
+// l'app. Avant, trois traitements coexistaient (avatar+nom sur le
+// dashboard, pastille "secteur" + roue crantée ailleurs, rien sur
+// compte) : même emplacement, trois apparences. Ce helper les unifie
+// sur l'avatar cliquable (initiale + nom), qui mène au compte.
+//
+// Null-guardé : les pages sans bloc nav-avatar (ex. compte.html) ne
+// lèvent pas, elles n'ont simplement rien à peupler.
+function renderNavAccount(profile) {
+  const initiale = document.getElementById('navAvatarInitial');
+  const nom = document.getElementById('navAvatarName');
+  if (!initiale || !nom) return;
+  const label = (profile && profile.nom) ? profile.nom : '';
+  initiale.textContent = label ? label[0].toUpperCase() : '?';
+  nom.textContent = label || 'mon compte';
+}
+
 async function getProfile() {
   const { data } = await supabaseClient
     .from('profiles')

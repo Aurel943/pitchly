@@ -107,7 +107,7 @@ async function checkAccess() {
 }
 
 function renderProfilePill(profile) {
-  document.getElementById('profilePill').textContent = LABELS_SECTEUR[profile.secteur] || profile.secteur;
+  renderNavAccount(profile);
 }
 
 function updateQuotaDisplay() {

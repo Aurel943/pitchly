@@ -35,8 +35,7 @@ async function checkAccess() {
 }
 
 function renderProfilePill(profile) {
-  const pill = document.getElementById('profilePill');
-  pill.textContent = LABELS_SECTEUR[profile.secteur] || profile.secteur;
+  renderNavAccount(profile);
 }
 
 

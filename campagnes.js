@@ -263,7 +263,7 @@ async function refresh() {
 }
 
 function renderProfilePill(profile) {
-  document.getElementById('profilePill').textContent = LABELS_SECTEUR[profile.secteur] || profile.secteur;
+  renderNavAccount(profile);
 }
 
 async function checkAccess() {
